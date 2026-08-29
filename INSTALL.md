@@ -78,6 +78,20 @@ Then a vhost in `C:\xampp\apache\conf\extra\httpd-vhosts.conf`:
 `Require local` keeps it to this machine. Take it out only when you are deliberately exposing the
 receiver, and read section 8 first if you are.
 
+**If this is the first vhost on the server, add a catch-all above it.** Apache serves the first
+`<VirtualHost>` to every request that matches no other `ServerName`, so defining one takes over
+everything the plain `DocumentRoot` used to answer:
+
+```apache
+<VirtualHost *:80>
+    ServerName localhost
+    DocumentRoot "C:/xampp/htdocs"
+</VirtualHost>
+```
+
+Point that at whatever the server's `DocumentRoot` in `httpd.conf` already is, and put it before the
+one above.
+
 Restart Apache, open `http://local.beeblebrox.cloud`, and set a password. That password is the only
 thing between this machine's API key and anybody else who can reach the address.
 
