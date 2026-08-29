@@ -1,0 +1,6 @@
+config.local.php
+jobs/
+logs/
+*.lock
+.DS_Store
+Thumbs.db

@@ -1,0 +1,320 @@
+/* Mobile first — the phone is where a feed like this actually gets read. No build step, no framework,
+   system fonts, and colors that follow the device. */
+
+:root {
+  --bg: #fbfaf8;
+  --panel: #ffffff;
+  --ink: #1d1c1a;
+  --muted: #6d6a65;
+  --line: #e4e0d9;
+  --accent: #b4451f;
+  --ok: #2f6b3a;
+  --bad: #a3282a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17171a;
+    --panel: #202024;
+    --ink: #ecebe8;
+    --muted: #9b9791;
+    --line: #33333a;
+    --accent: #e2703f;
+    --ok: #6fbf7f;
+    --bad: #e2686a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .85rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.bar h1 { font-size: 1.1rem; margin: 0; }
+
+/* Pushes the sign-out control to the far end without needing a spacer element. */
+.push-right { margin-left: auto; }
+
+main { padding: 1rem; max-width: 52rem; margin: 0 auto; }
+main.narrow { max-width: 22rem; padding-top: 3rem; }
+
+h2 {
+  font-size: .85rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin: 1.75rem 0 .6rem;
+}
+
+.muted { color: var(--muted); font-weight: normal; }
+.small { font-size: .82rem; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: .6rem;
+  padding: .9rem;
+  margin-bottom: .75rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: .72rem;
+  padding: .15rem .45rem;
+  border-radius: .3rem;
+  border: 1px solid var(--line);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.stack { display: flex; flex-direction: column; gap: .7rem; margin-top: .7rem; }
+.stack label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; color: var(--muted); }
+
+input[type=text], input[type=email], input[type=password], textarea, select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  padding: .55rem .6rem;
+  width: 100%;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: .4rem;
+  padding: .65rem 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+  min-height: 2.75rem;
+}
+
+/* A button that has to look like a link, because signing out must be a POST. */
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 0;
+  color: var(--muted);
+  font-weight: normal;
+  font-size: .85rem;
+  text-decoration: underline;
+}
+
+.error, .ok {
+  background: var(--panel);
+  border: 1px solid var(--bad);
+  border-left-width: 3px;
+  color: var(--bad);
+  border-radius: .4rem;
+  padding: .7rem .9rem;
+}
+
+.ok { border-color: var(--ok); color: var(--ok); }
+
+.cap { margin: .3rem 0; font-size: .9rem; }
+.cap .yes, .cap .no {
+  display: inline-block;
+  width: 2.5rem;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.cap .yes { color: var(--ok); }
+.cap .no { color: var(--muted); }
+
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; }
+
+/* Rows are whole-block links so they are easy to hit with a thumb. */
+.row-link {
+  display: block;
+  padding: .8rem .9rem;
+  margin-bottom: .5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: .6rem;
+  text-decoration: none;
+  color: inherit;
+}
+.row-link .id { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: .4rem; }
+.row-link .title { color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-top: .4rem; }
+.repo { font-size: .8rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.home { color: inherit; text-decoration: none; font-weight: 600; }
+summary { cursor: pointer; font-weight: 600; }
+details.card summary { margin: -.2rem 0; }
+.stack label.row { flex-direction: row; align-items: center; gap: .5rem; }
+form.inline { display: inline; }
+
+/* Long agent output keeps its line breaks without collapsing the layout. */
+.pre { white-space: pre-wrap; word-break: break-word; font-size: .92rem; }
+
+.ask-card { border-left: 3px solid var(--accent); }
+
+.badge.test { border-color: var(--accent); color: var(--accent); }
+.badge.status-open, .badge.status-in_progress { border-color: var(--accent); color: var(--accent); }
+.badge.status-done { border-color: var(--ok); color: var(--ok); }
+.badge.status-failed, .badge.status-escalated { border-color: var(--bad); color: var(--bad); }
+.badge.outcome-pass { border-color: var(--ok); color: var(--ok); }
+.badge.outcome-fail { border-color: var(--bad); color: var(--bad); }
+
+.cap.here { font-weight: 600; }
+.result { margin: 0 0 .8rem; }
+.result:last-child { margin-bottom: 0; }
+
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { padding: .55rem 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.timeline li:last-child { border-bottom: 0; }
+
+/* ---- top bar ------------------------------------------------------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+.brand img { border-radius: .25rem; display: block; }
+.company { color: var(--muted); font-size: .85rem; }
+
+/* Counts sit at the far end and answer the same question the feed is grouped around, so the bar
+   never disagrees with the page it sits above. */
+.bar-counts { margin-left: auto; display: flex; gap: .9rem; align-items: baseline; }
+.bar-counts .count {
+  color: inherit;
+  text-decoration: none;
+  font-size: .85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bar-counts .count-live { color: var(--accent); font-weight: 600; }
+.bar-counts .count-live .muted { color: var(--accent); }
+
+/* ---- drawer ------------------------------------------------------------------------------- */
+
+/* A checkbox and two labels. No JavaScript, so it cannot fail to open. */
+.hamburger {
+  position: relative;
+  width: 1.35rem;
+  height: 1rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.hamburger span,
+.hamburger span::before,
+.hamburger span::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.hamburger span { top: 50%; margin-top: -1px; }
+.hamburger span::before { content: ""; top: -6px; }
+.hamburger span::after  { content: ""; top: 6px; }
+
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 15rem;
+  max-width: 82vw;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  padding: 1rem .75rem;
+  overflow-y: auto;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  transform: translateX(-100%);
+  transition: transform .18s ease;
+}
+.drawer-toggle:checked ~ .drawer { transform: none; }
+
+/* Covers everything including the bar, so a click anywhere outside closes it — which is what makes
+   it auto-hiding rather than something you have to dismiss deliberately. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: none;
+  background: rgba(0, 0, 0, .35);
+}
+.drawer-toggle:checked ~ .scrim { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer { transition: none; }
+}
+
+.drawer-who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .3rem;
+  padding: 0 .5rem .75rem;
+  margin-bottom: .5rem;
+  border-bottom: 1px solid var(--line);
+  font-size: .9rem;
+  word-break: break-word;
+}
+
+.drawer-item {
+  display: block;
+  padding: .55rem .5rem;
+  border-radius: .4rem;
+  color: inherit;
+  text-decoration: none;
+  font-size: .95rem;
+}
+.drawer-item:hover { background: var(--bg); }
+.drawer-item.current { background: var(--bg); font-weight: 600; }
+
+.drawer-signout {
+  margin-top: auto;
+  padding: .75rem .5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+/* A form that is really just one button sitting inside a sentence — "remove", "archive this suite".
+   Every destructive or state-changing control has to be a POST, so it needs a form around it, and
+   without this the form's block display breaks the sentence it belongs to. */
+.inline { display: inline; }
+.inline + .inline { margin-left: .6rem; }
+
+/* The handoff document. Long by nature — it is four briefings plus a chain — so it gets its own
+   scroll rather than pushing the page to an unusable length. Wrapped, because the markdown inside it
+   is prose meant to be read here, not code to be preserved column-for-column. */
+.pre.handoff {
+  max-height: 32rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -1,0 +1,135 @@
+/* Loaded after the platform's stylesheet, and only what that one does not already have: the job
+   states, the landing page, and the wide blocks a run produces. Everything shared stays shared, so a
+   change to the palette on the platform reaches here by copying one file. */
+
+/* Job states. Green when it landed, red when it did not, and the platform's accent for the ones
+   that are somebody's problem right now. */
+.badge.job-queued, .badge.job-claimed { border-color: var(--line); color: var(--muted); }
+.badge.job-running, .badge.job-reporting { border-color: var(--accent); color: var(--accent); }
+.badge.job-done { border-color: var(--ok); color: var(--ok); }
+.badge.job-failed { border-color: var(--bad); color: var(--bad); }
+.badge.job-attention { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+.badge.job-skipped { border-color: var(--line); color: var(--muted); }
+
+/* Anything a machine wrote: a prompt, an agent's answer, a stack trace. Scrolls inside itself so a
+   long line never makes the page scroll sideways. */
+.output {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  padding: .7rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: .82rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  max-height: 32rem;
+}
+
+/* The job log. One line per thing that happened, timestamps in a column you can scan down. */
+.events { list-style: none; margin: 0; padding: 0; }
+.events li {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: .6rem;
+  padding: .35rem 0;
+  border-top: 1px solid var(--line);
+  font-size: .85rem;
+}
+.events li:first-child { border-top: 0; }
+.events time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.events .warn { color: var(--accent); }
+.events .error { color: var(--bad); }
+.events pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; }
+
+/* Facts about a job or a check, two to a row on anything wider than a phone. */
+.facts { display: grid; grid-template-columns: 1fr; gap: .5rem 1.5rem; margin: .5rem 0 0; }
+.facts div { display: flex; justify-content: space-between; gap: 1rem; font-size: .88rem; }
+.facts dt, .facts .k { color: var(--muted); }
+.facts dd, .facts .v { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+@media (min-width: 34rem) { .facts { grid-template-columns: 1fr 1fr; } }
+
+/* Diagnostics: one line per check, so the shape of the page tells you whether anything is wrong
+   before you have read a word of it. */
+.check { display: flex; gap: .6rem; align-items: baseline; padding: .55rem 0; border-top: 1px solid var(--line); }
+.check:first-child { border-top: 0; }
+.check .mark { font-weight: 700; width: 1.2rem; flex: none; }
+.check.pass .mark { color: var(--ok); }
+.check.warn .mark { color: var(--accent); }
+.check.fail .mark { color: var(--bad); }
+.check .what { font-weight: 600; }
+.check .detail { color: var(--muted); font-size: .85rem; display: block; margin-top: .1rem; }
+
+/* The landing page — what somebody sees before they have signed in, and the only page written for a
+   reader who does not know what this is yet. */
+.lede { font-size: 1.15rem; line-height: 1.55; margin: 1.5rem 0; }
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 1.5rem 0; }
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding: .1rem 0 1.1rem 2.4rem;
+  border-left: 2px solid var(--line);
+  margin-left: .9rem;
+}
+.steps li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: -.9rem;
+  top: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: .8rem;
+  font-weight: 700;
+}
+.steps strong { display: block; margin-bottom: .15rem; }
+.steps span { color: var(--muted); font-size: .9rem; }
+
+/* A form row where the field and its explanation belong together. */
+.stack label small { color: var(--muted); font-weight: normal; line-height: 1.45; }
+.stack .danger small { color: var(--bad); }
+
+/* Buttons that sit next to each other under a card. */
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+.actions button.secondary, .actions a.secondary {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: .4rem;
+  padding: .65rem 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+table.grid { width: 100%; border-collapse: collapse; font-size: .88rem; }
+table.grid th, table.grid td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); }
+table.grid th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+.scroll-x { overflow-x: auto; }
+
+/* The sign-in page, which is the one place a column of full page width would look silly. */
+.narrow-wrap { max-width: 24rem; margin: 2rem auto 0; }
+.narrow-wrap code { word-break: break-all; }
+
+/* A checkbox and its wording on one line. .stack lays every label out as a column, which is right
+   for a field with a caption under it and wrong for a switch. */
+.stack label.inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: .55rem;
+  color: var(--ink);
+  font-size: 1rem;
+}
+.stack label.inline input[type=checkbox] { width: auto; margin: 0; flex: none; }
+
+/* Section headings inside a long form, quieter than the page's own h2. */
+.stack h3 { font-size: .95rem; margin: 1.4rem 0 0; }
+.stack h3:first-of-type { margin-top: .4rem; }
