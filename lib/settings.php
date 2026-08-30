@@ -19,7 +19,9 @@ function bbl_setting_defaults() {
     // somebody else's host.
     'instance_url'          => '',
 
-    // Bearer token, minted on the instance with:  php tools/api-key.php create "laptop" task_creator
+    // Bearer token. Issued on the instance's own API keys page — <instance>/keys.php, company admin
+    // only — and shown there once. There is deliberately no way to get one from here: authenticating
+    // a request for a key would need a credential, which is the problem being solved.
     'api_key'               => '',
 
     // Shared with the dispatcher on the instance. Without it webhooks are refused outright rather
@@ -159,7 +161,9 @@ function settings_gaps() {
     $gaps[] = 'No instance URL. Nothing knows which Beeblebrox this machine works for.';
   }
   if (!setting_secret_is_set('api_key')) {
-    $gaps[] = 'No API key. Work cannot be claimed, read or reported without one.';
+    $gaps[] = 'No API key. Work cannot be claimed, read or reported without one — issue one on the ' .
+      'instance at ' . (instance_base() === '' ? '<instance>/keys.php' : instance_base() . '/keys.php') .
+      ' and paste it into the settings page.';
   }
   if (setting_bool('accept_webhooks') && !setting_secret_is_set('webhook_secret')) {
     $gaps[] = 'Webhooks are switched on but no signing secret is stored, so every envelope is refused.';

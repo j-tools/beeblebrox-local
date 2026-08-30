@@ -33,6 +33,13 @@ view_header('Diagnostics', true);
 <?php if ($check['detail'] !== ''): ?>
       <span class="detail"><?= h($check['detail']) ?></span>
 <?php endif; ?>
+<?php if (!empty($check['url'])): ?>
+      <?php // A link on the instance opens in a new tab; one of ours replaces the page, because you
+            // came here from it and will come back. ?>
+      <span class="detail"><a href="<?= h($check['url']) ?>"
+<?php if (str_contains($check['url'], '//')): ?> target="_blank" rel="noopener"<?php endif; ?>
+        ><?= h($check['url']) ?></a></span>
+<?php endif; ?>
     </span>
   </div>
 <?php endforeach; ?>

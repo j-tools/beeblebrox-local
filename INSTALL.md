@@ -99,18 +99,30 @@ For a quick look without Apache, `php -S 127.0.0.1:8774 -t .` serves it just as 
 
 ## 5. Get an API key from the instance
 
-On the Beeblebrox instance — a container shell, or its API keys page:
+Set the **instance URL** on the settings page here first and press Save. A link to that instance's key
+page appears under the API key box, which saves assembling the address by hand.
 
-```bash
-php tools/api-key.php create "jeroen's laptop" task_creator
-```
+Then, on the instance:
 
-`task_creator` is the permission a worker needs: read everything, claim, and report. If this machine
-only ever works one project, pin it with `--project=7` and it can reach nothing else.
+1. Sign in to it as a **company admin** — that is the only permission that can issue a key.
+2. **API keys** in the menu, or `<instance>/keys.php` directly.
+3. **New key**. Name it after this machine, so a year from now it is obvious which one it is.
+4. Permission **task creator** — read everything, claim, and report, which is exactly what a worker
+   needs and nothing more.
+5. Optionally pin it to one project. Only do that if this machine works that project and nothing
+   else: a pinned key cannot touch work that has no project yet, which is everything at triage.
 
-The key is shown once. Paste it into the settings page here, set the instance URL, and press
-**Test the connection** — it saves first, then says whether the instance answered and whether the key
-was accepted.
+The key is shown once, on that page, and only a hash is kept — so copy it straight into the API key
+box here. If it goes missing, revoke it there and issue another.
+
+Then press **Test the connection**. It saves first, then says whether the instance answered and
+whether the key was accepted, so you find out now rather than at the next runner pass.
+
+There is deliberately no way to generate a key from this side. Asking the instance for one would need
+a credential to authenticate the request, which is the problem being solved.
+
+If you are running the instance and no admin account exists yet, that is a provisioning step on the
+instance itself — `tools/init-instance.php` there — not something this end can do.
 
 ## 6. Map your projects
 

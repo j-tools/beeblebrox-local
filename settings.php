@@ -108,9 +108,18 @@ view_flash($error, $notice);
   <label>API key
     <input type="password" name="api_key" autocomplete="off"
            placeholder="<?= setting_secret_is_set('api_key') ? 'stored — leave empty to keep it' : 'not set' ?>">
-    <small>Mint one on the instance:
-      <code>php tools/api-key.php create "this machine" task_creator</code>. It is shown once there.
-      Pin it to a project with <code>--project=N</code> if this machine only works on one.</small>
+<?php if (instance_base() !== ''): ?>
+    <small>Issue one on the instance:
+      <a href="<?= h(instance_base()) ?>/keys.php" target="_blank" rel="noopener">
+        <?= h(instance_base()) ?>/keys.php</a> → <strong>New key</strong>. Choose
+      <strong>task creator</strong>, which is what a worker needs: read everything, claim, and report.
+      It is shown once there, so copy it straight into this box.</small>
+<?php else: ?>
+    <!-- The link is built from the stored instance URL, so it cannot be offered before there is one.
+         Saying that beats a dead link or a bare hostname somebody has to assemble by hand. -->
+    <small>Fill in the instance URL above and press Save — a link straight to that instance's key
+      page appears here.</small>
+<?php endif; ?>
   </label>
 
   <h3>Being sent work</h3>

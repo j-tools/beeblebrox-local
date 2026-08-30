@@ -12,8 +12,11 @@ require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/jobs.php';
 require_once __DIR__ . '/agent.php';
 
-function check($state, $what, $detail = '') {
-  return ['state' => $state, 'what' => $what, 'detail' => $detail];
+// A check may carry somewhere to go. Half of these are fixed on a page somewhere, and a URL beats a
+// sentence describing where that page is — especially the ones on the instance, which is a different
+// host and not one somebody has memorised.
+function check($state, $what, $detail = '', $url = null) {
+  return ['state' => $state, 'what' => $what, 'detail' => $detail, 'url' => $url];
 }
 
 // $deep runs the checks that cost a network round trip or start a process. The dashboard skips them;
@@ -55,20 +58,23 @@ function checks_run($deep = true) {
   $out[] = setting('admin_password_hash') !== ''
     ? check('pass', 'These pages have a password')
     : check('fail', 'No password on these pages',
-        'Anyone who can reach this address can read the API key and start an agent. Set one on the ' .
-        'settings page.');
+        'Anyone who can reach this address can read the API key and start an agent.',
+        'settings.php');
 
   // --- who this machine works for ----------------------------------------------------------------
   if (instance_base() === '') {
     $out[] = check('fail', 'No instance configured',
-      'Set the Beeblebrox instance URL on the settings page — nothing knows where to report to.');
+      'Nothing knows which Beeblebrox this machine works for, so nothing else below can be asked.',
+      'settings.php');
     return $out;
   }
   $out[] = check('pass', 'Instance configured', instance_base());
 
   if (!setting_secret_is_set('api_key')) {
     $out[] = check('fail', 'No API key',
-      'Mint one on the instance with: php tools/api-key.php create "this machine" task_creator');
+      'Issue one on the instance — sign in there as a company admin, API keys in the menu, New key, ' .
+      'permission "task creator" — then paste it into the settings page here. It is shown once.',
+      instance_base() . '/keys.php');
   } elseif ($deep) {
     $health = upstream_health();
     $out[] = $health['ok']
@@ -81,7 +87,8 @@ function checks_run($deep = true) {
         ? check('pass', 'API key works',
             count($tasks['json']['tasks'] ?? []) . ' task(s) open on the instance right now')
         : check('fail', 'API key refused', $tasks['error'] .
-            ' — the key needs the task_creator permission or better.');
+            ' — the key needs the task creator permission or better. Revoke it and issue another.',
+            instance_base() . '/keys.php');
     }
   } else {
     $out[] = check('pass', 'API key is stored');
@@ -106,7 +113,9 @@ function checks_run($deep = true) {
   }
   if ($hook && !setting_secret_is_set('webhook_secret')) {
     $out[] = check('fail', 'Webhooks are on with no signing secret',
-      'Every envelope is refused until the secret here matches the one on the dispatcher.');
+      'Every envelope is refused until the secret here matches the one on the dispatcher. Set the ' .
+      'same string in both places, or switch webhooks off and let polling do the work.',
+      'settings.php');
   }
 
   // --- the runner --------------------------------------------------------------------------------
@@ -135,7 +144,7 @@ function checks_run($deep = true) {
   $projects = projects_all();
   if (!$projects) {
     $out[] = check('warn', 'No projects mapped',
-      'Work that belongs to a project will stop and ask for a directory. Map them on the projects page.');
+      'Work that belongs to a project will stop and ask for a directory.', 'projects.php');
   } else {
     foreach ($projects as $project) {
       if (!(int)$project['is_active']) {

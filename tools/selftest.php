@@ -31,6 +31,10 @@ foreach ($checks as $check) {
       echo '         ' . $line . "\n";
     }
   }
+  if (!empty($check['url'])) {
+    // On its own line and never wrapped, so a terminal that turns URLs into links gets a whole one.
+    echo '         ' . $check['url'] . "\n";
+  }
 }
 
 $counts = array_count_values(array_column($checks, 'state'));
