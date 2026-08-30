@@ -55,10 +55,11 @@ if (!$reachable || !bbl_signed_in()) {
 
   <div class="card">
     <h3 style="margin-top:0">Setting one up</h3>
-    <p class="small">Copy <code>config.local.example.php</code>, load <code>db/schema.sql</code>,
-       point a vhost at this directory, then sign in and fill in the settings page.
-       <code>INSTALL.md</code> has it in full, including the scheduled task that makes any of it
-       happen on its own.</p>
+    <p class="small">Copy <code>config.local.example.php</code>, load <code>db/schema.sql</code>, and
+       point a vhost at this directory. Signing in for the first time sets a password and then walks
+       you through the four questions the rest of it needs — which Beeblebrox, a key, how work
+       arrives, and what runs it. <code>INSTALL.md</code> has the parts no web page can do for you,
+       including the scheduled task that makes any of this happen on its own.</p>
   </div>
 
 <?php if (!$reachable): ?>

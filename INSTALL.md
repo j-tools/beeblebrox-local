@@ -95,6 +95,12 @@ one above.
 Restart Apache, open `http://local.beeblebrox.cloud`, and set a password. That password is the only
 thing between this machine's API key and anybody else who can reach the address.
 
+Setting it drops you straight into a four-question setup: which Beeblebrox this machine works for, a
+key to talk to it with, how work should arrive, and what runs it. Each answer is checked before it
+moves on, so a wrong instance name or a refused key is caught while you are still looking at it. The
+next three sections are the same four questions in longer form — read them if a choice is not
+obvious, skip them if it is.
+
 For a quick look without Apache, `php -S 127.0.0.1:8774 -t .` serves it just as well.
 
 ## 5. Get an API key from the instance

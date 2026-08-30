@@ -64,13 +64,16 @@ cp config.local.example.php config.local.php   # fill in the database and a SECR
 mysql -u <user> -p <database> < db/schema.sql
 ```
 
-Then open the site, set a password, and fill in the settings page.
+Then open the site and set a password. That drops you into a four-question setup — which Beeblebrox
+this machine works for, a key to talk to it with, how work arrives, and what runs it — each answer
+checked against the instance before it moves on.
 
 ## Layout
 
 | | |
 |---|---|
 | `index.php` | landing page signed out, dashboard signed in |
+| `setup.php` | the four questions, in the order they depend on each other |
 | `hook.php` | the webhook receiver — the only thing the instance talks to |
 | `jobs.php`, `job.php` | what this machine has been asked to do, and one of them in full |
 | `projects.php` | which directory each upstream project's work happens in |
