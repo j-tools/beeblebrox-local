@@ -53,9 +53,10 @@ function bbl_public_site() {
 }
 
 // Installing Claude Code so this can drive it. A page on the public site rather than a section of
-// INSTALL.md, because the person who needs it is looking at a browser, not at a repository.
+// INSTALL.md, because the person who needs it is looking at a browser, not at a repository — and an
+// anchor rather than a page of its own, since what to install is one paragraph of what this is.
 function bbl_agent_install_url() {
-  return bbl_public_site() . '/local-worker';
+  return bbl_public_site() . '/local/#claude-code';
 }
 
 // A human label for which instance this checkout serves, used in the page title and in log lines so a
