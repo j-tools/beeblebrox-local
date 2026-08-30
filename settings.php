@@ -20,7 +20,7 @@ $notice = null;
 // Plain values, saved as typed. The secrets and the password are handled separately below, because
 // "empty means leave it alone" is true for those and false for these.
 $plain = [
-  'instance_url', 'accept_webhooks', 'signature_tolerance', 'allowed_ips',
+  'instance_url', 'company_name', 'accept_webhooks', 'signature_tolerance', 'allowed_ips',
   'poll_enabled', 'poll_roles', 'poll_dispatch',
   'agent_command', 'agent_timeout_seconds', 'default_model',
   'workspace_root', 'max_jobs_per_run', 'report_max_attempts',
@@ -43,10 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   } else {
     try {
-      $url = rtrim(trim((string)($_POST['instance_url'] ?? '')), '/');
-      if ($url !== '' && !preg_match('#^https?://#i', $url)) {
-        throw new RuntimeException('The instance URL has to start with http:// or https://');
-      }
+      // Same parsing as the setup wizard, so a bare instance name works in both places rather than
+      // being a convenience that only exists the first time.
+      $url = instance_normalize($_POST['instance_url'] ?? '');
       foreach ($plain as $name) {
         $value = in_array($name, $checkboxes, true)
           ? (empty($_POST[$name]) ? '0' : '1')
@@ -101,9 +100,17 @@ view_flash($error, $notice);
   <?= bbl_csrf_field() ?>
   <label>Beeblebrox instance
     <input type="text" name="instance_url" value="<?= h(setting('instance_url')) ?>"
-           placeholder="https://zaphod.beeblebrox.cloud">
-    <small>Every URL in an envelope is checked against this before anything is fetched from it, so a
-      forged envelope cannot point this machine's API key somewhere else.</small>
+           placeholder="zaphod">
+    <small>The name on its own is enough — <code>zaphod</code> becomes
+      <code>https://zaphod.beeblebrox.cloud</code>. Every URL in an envelope is checked against this
+      before anything is fetched from it, so a forged envelope cannot point this machine's API key
+      somewhere else.</small>
+  </label>
+  <label>Company name
+    <input type="text" name="company_name" value="<?= h(setting('company_name')) ?>"
+           placeholder="<?= h(instance_name() ?: 'taken from the instance name') ?>">
+    <small>What the top of every page here says, so two workers are never mistaken for each other.
+      Presentation only — nothing routes on it.</small>
   </label>
   <label>API key
     <input type="password" name="api_key" autocomplete="off"

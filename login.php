@@ -37,7 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
       setting_set('admin_password_hash', password_hash($password, PASSWORD_DEFAULT));
       bbl_sign_in();
-      header('Location: settings.php');
+      // Straight into setup rather than the settings page. Somebody who has just set a password has
+      // never seen any of this, and a screen of thirteen fields is the wrong thing to hand them.
+      header('Location: setup.php');
       exit;
     }
   } else {

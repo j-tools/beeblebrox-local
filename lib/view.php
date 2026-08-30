@@ -51,13 +51,20 @@ function view_head($title) {
 }
 
 function view_menu_items() {
-  return [
+  $items = [
     ['href' => 'index.php',    'label' => 'Dashboard'],
     ['href' => 'jobs.php',     'label' => 'Jobs'],
     ['href' => 'projects.php', 'label' => 'Projects'],
     ['href' => 'settings.php', 'label' => 'Settings'],
     ['href' => 'diagnostics.php', 'label' => 'Diagnostics'],
   ];
+  // Offered only while there is something it would still ask. Once everything is answered the
+  // settings page is the place to change any of it, and a permanent "Setup" entry would suggest
+  // otherwise.
+  if (settings_gaps()) {
+    array_unshift($items, ['href' => 'setup.php', 'label' => 'Finish setup']);
+  }
+  return $items;
 }
 
 function view_header($title, $signed_in = false) {
@@ -81,11 +88,25 @@ function view_header($title, $signed_in = false) {
 <?php if ($signed_in): ?>
   <label for="drawer-toggle" class="hamburger" title="Menu" aria-label="Menu"><span></span></label>
 <?php endif; ?>
-  <a class="brand" href="index.php">
-    <img src="assets/favicon-32.png" width="24" height="24" alt="">
-    <span>Beeblebrox Local</span>
+<?php // Two things side by side: the mark goes home, the wording goes to the instance it names. The
+      // instance is a different host on a different machine and the one somebody in this window
+      // regularly wants to get back to, so it earns the larger target. ?>
+  <a class="brand-mark" href="index.php" title="Dashboard">
+    <img src="assets/favicon-32.png" width="28" height="28" alt="Beeblebrox">
   </a>
-  <span class="company"><?= h(bbl_env_label()) ?></span>
+<?php if (instance_base() !== ''): ?>
+  <a class="brand" href="<?= h(instance_base()) ?>" target="_blank" rel="noopener"
+     title="Open <?= h(parse_url(instance_base(), PHP_URL_HOST)) ?>">
+    <span class="brand-kicker">Local work for</span>
+    <span class="brand-company"><?= h(company_name()) ?> <span class="muted">Beeblebrox</span></span>
+  </a>
+<?php else: ?>
+  <?php // Before setup there is nowhere to point it, and a link that goes nowhere is worse than none. ?>
+  <span class="brand">
+    <span class="brand-kicker">Not set up yet</span>
+    <span class="brand-company">Beeblebrox <span class="muted">Local</span></span>
+  </span>
+<?php endif; ?>
 <?php if ($signed_in): ?>
   <span class="bar-counts">
     <a href="jobs.php?status=attention" class="count<?= $needs_attention ? ' count-live' : '' ?>">

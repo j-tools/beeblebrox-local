@@ -113,7 +113,8 @@ view_flash(null, $notice);
 <?php endforeach; ?>
     </ul>
     <div class="actions">
-      <a href="settings.php" class="secondary">Settings</a>
+      <a href="setup.php" class="primary">Finish setup</a>
+      <a href="settings.php" class="secondary">All settings</a>
       <a href="diagnostics.php" class="secondary">Diagnostics</a>
     </div>
   </div>

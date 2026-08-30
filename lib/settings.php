@@ -19,6 +19,11 @@ function bbl_setting_defaults() {
     // somebody else's host.
     'instance_url'          => '',
 
+    // What to call the company whose work this machine does. Presentation only — nothing routes on
+    // it — but it is what the bar says and what every link back to the instance is labelled, and a
+    // person running a worker for two companies needs to know at a glance which window is which.
+    'company_name'          => '',
+
     // Bearer token. Issued on the instance's own API keys page — <instance>/keys.php, company admin
     // only — and shown there once. There is deliberately no way to get one from here: authenticating
     // a request for a key would need a credential, which is the problem being solved.
@@ -137,6 +142,58 @@ function setting_set($name, $value) {
 // wants. Returns '' when unset.
 function instance_base() {
   return rtrim((string)setting('instance_url'), '/');
+}
+
+// What the company is called, falling back to the instance's own name — which is the same word in
+// every hosted case, since an instance is <company>.beeblebrox.cloud.
+function company_name() {
+  $name = trim((string)setting('company_name'));
+  return $name !== '' ? $name : instance_name();
+}
+
+// The first label of the instance's hostname: 'zaphod' out of zaphod.beeblebrox.cloud. This is the
+// word a person actually knows — nobody thinks of their company as a URL — so it is what the setup
+// wizard asks for and what a company name is guessed from.
+function instance_name() {
+  $host = parse_url(instance_base(), PHP_URL_HOST);
+  if (!$host) {
+    return '';
+  }
+  $labels = explode('.', $host);
+  return $labels[0];
+}
+
+// Turns whatever somebody typed into a base URL.
+//
+// A bare word is the case worth having: an instance is <company>.beeblebrox.cloud, so 'zaphod' is
+// enough and asking a customer to produce a URL from that is asking them to get a scheme and a
+// domain right for no reason. Anything with a dot or a scheme in it is taken as an address, which is
+// what a self-hosted instance needs.
+//
+// Throws rather than guessing at something unusable, because the message is the whole value here.
+function instance_normalize($input) {
+  $input = trim((string)$input);
+  if ($input === '') {
+    return '';
+  }
+  if (preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i', $input)) {
+    return 'https://' . strtolower($input) . '.beeblebrox.cloud';
+  }
+  if (!preg_match('#^https?://#i', $input)) {
+    // No scheme but not a bare name either — a hostname, or something with a port or a path. https
+    // is the only sane assumption for an instance; a plain-http one can still be typed in full.
+    $input = 'https://' . $input;
+  }
+  // Whatever the host turns out to be is taken as meant. A single-label host like `localhost` is
+  // legitimate for a self-hosted instance or a tunnel, and refusing it to catch typos would be
+  // choosing the rarer mistake over the real case.
+  $host = parse_url($input, PHP_URL_HOST);
+  if (!$host || !preg_match('/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i', $host)) {
+    throw new RuntimeException(
+      "\"{$input}\" is not an address this can use. Either the name of your instance on its own — " .
+      'zaphod, say, for zaphod.beeblebrox.cloud — or the full address of a self-hosted one.');
+  }
+  return rtrim($input, '/');
 }
 
 // Whether a URL from an envelope may be fetched. The signature already proves the envelope came from

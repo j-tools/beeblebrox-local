@@ -118,6 +118,34 @@ is_same(null, agent_verdict($file, 'no json anywhere')['result'],
 unlink($file);
 @rmdir($dir);
 
+echo "\ninstance_normalize — turning what somebody typed into an address\n";
+is_same('https://zaphod.beeblebrox.cloud', instance_normalize('zaphod'),
+  'a bare name becomes a hosted instance');
+is_same('https://zaphod.beeblebrox.cloud', instance_normalize('  ZAPHOD  '),
+  'trimmed and lowercased on the way');
+is_same('https://acme-two.beeblebrox.cloud', instance_normalize('acme-two'),
+  'hyphens are part of a name');
+is_same('https://beta.beeblebrox.cloud', instance_normalize('https://beta.beeblebrox.cloud/'),
+  'a full address is kept, without its trailing slash');
+is_same('http://localhost:8080', instance_normalize('http://localhost:8080'),
+  'http survives, since a self-hosted instance may not have a certificate');
+is_same('https://beeblebrox.example.com', instance_normalize('beeblebrox.example.com'),
+  'a bare hostname gets https rather than being read as a name');
+is_same('https://10.0.0.7', instance_normalize('10.0.0.7'), 'so does an address');
+is_same('', instance_normalize('   '), 'nothing typed is nothing set');
+
+// The failure has to be loud: silently producing a URL nobody meant is how an API key ends up
+// pointed at the wrong host.
+foreach (['https://', 'http:// ', '///nonsense'] as $rubbish) {
+  $threw = false;
+  try {
+    instance_normalize($rubbish);
+  } catch (Throwable $e) {
+    $threw = true;
+  }
+  is_true($threw, 'refuses ' . var_export($rubbish, true) . ' rather than guessing at it');
+}
+
 echo "\nurl_is_upstream — the check that still holds if the signing secret leaks\n";
 // Set on the live row rather than mocked, then put back, because the function reads settings and a
 // test that mocks its way around that would not be testing the thing that runs.
