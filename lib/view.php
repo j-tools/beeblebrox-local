@@ -10,6 +10,26 @@ function view_label($value) {
   return ucfirst(str_replace('_', ' ', (string)$value));
 }
 
+// Whether the bar may ask the database anything.
+//
+// The landing page deliberately renders when the database is unreachable, in order to say so — and
+// the header sits above that message. Once the bar started naming the company, it started reading a
+// setting, and a header that throws on the way to the message replaces the message with a stack
+// trace. This is presentation deciding what it is able to show, not a fallback hiding a failure:
+// every caller that needs a real answer still gets the exception.
+function view_settings_readable() {
+  static $ok = null;
+  if ($ok === null) {
+    try {
+      settings_raw();
+      $ok = true;
+    } catch (Throwable $e) {
+      $ok = false;
+    }
+  }
+  return $ok;
+}
+
 // Compared against the database clock rather than PHP's. The two are not reliably in step on a
 // machine that has been asleep, and a PHP-computed difference can be hours out.
 function view_ago($datetime) {
@@ -94,7 +114,7 @@ function view_header($title, $signed_in = false) {
   <a class="brand-mark" href="index.php" title="Dashboard">
     <img src="assets/favicon-32.png" width="28" height="28" alt="Beeblebrox">
   </a>
-<?php if (instance_base() !== ''): ?>
+<?php if (view_settings_readable() && instance_base() !== ''): ?>
   <a class="brand" href="<?= h(instance_base()) ?>" target="_blank" rel="noopener"
      title="Open <?= h(parse_url(instance_base(), PHP_URL_HOST)) ?>">
     <span class="brand-kicker">Local work for</span>

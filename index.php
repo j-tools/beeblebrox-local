@@ -53,19 +53,23 @@ if (!$reachable || !bbl_signed_in()) {
         next — a worker here never names one.</span></li>
   </ol>
 
-  <div class="card">
-    <h3 style="margin-top:0">Setting one up</h3>
-    <p class="small">Copy <code>config.local.example.php</code>, load <code>db/schema.sql</code>, and
-       point a vhost at this directory. Signing in for the first time sets a password and then walks
-       you through the four questions the rest of it needs — which Beeblebrox, a key, how work
-       arrives, and what runs it. <code>INSTALL.md</code> has the parts no web page can do for you,
-       including the scheduled task that makes any of this happen on its own.</p>
-  </div>
-
 <?php if (!$reachable): ?>
-  <p class="error">This copy cannot reach its database yet: <?= h($db_error) ?></p>
+  <?php // The only state in which telling somebody to go and set up a config file is any use. Anyone
+        // reading the page below this has plainly already done it — the page would not render at
+        // all otherwise — and instructions addressed to a reader who has finished them are noise. ?>
+  <p class="error">This copy cannot reach its database: <?= h($db_error) ?></p>
+  <div class="card">
+    <h3 style="margin-top:0">Before this can do anything</h3>
+    <p class="small">Copy <code>config.local.example.php</code> to <code>config.local.php</code> and
+       fill in the database this should use, then load <code>db/schema.sql</code> into it.
+       <code>INSTALL.md</code> has both in full, in sections 2 and 3.</p>
+  </div>
 <?php else: ?>
-  <p><a href="login.php">Sign in</a></p>
+  <div class="actions">
+    <?php // Named for what actually happens next, which is different the first time. ?>
+    <a href="login.php" class="primary">
+      <?= setting('admin_password_hash') === '' ? 'Set this one up' : 'Sign in' ?></a>
+  </div>
 <?php endif; ?>
 <?php
   view_footer();
