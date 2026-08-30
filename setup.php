@@ -21,14 +21,31 @@ bbl_require_signin();
 
 // Ordered, and the order is the dependency: nothing can be asked about a key until there is an
 // instance to issue it, and nothing about the agent matters until work can reach the machine.
+//
+// A step is done when somebody answered it, not when the setting behind it happens to hold something.
+// Two of these ship with a working default — polling is on, and there is an agent command — so
+// judging by the value would tick them off before they had been read, which is exactly the pair a
+// person most needs to have looked at.
 function setup_steps() {
+  $answered = setup_answered();
   return [
-    'company' => ['title' => 'Your Beeblebrox',   'done' => instance_base() !== ''],
-    'key'     => ['title' => 'Your key',          'done' => setting_secret_is_set('api_key')],
-    'work'    => ['title' => 'How work arrives',  'done' => setting_bool('poll_enabled') ||
-                                                            setting_secret_is_set('webhook_secret')],
-    'agent'   => ['title' => 'Your agent',        'done' => trim((string)setting('agent_command')) !== ''],
+    'company' => ['title' => 'Your Beeblebrox',  'done' => in_array('company', $answered, true)],
+    'key'     => ['title' => 'Your key',         'done' => in_array('key', $answered, true)],
+    'work'    => ['title' => 'How work arrives', 'done' => in_array('work', $answered, true)],
+    'agent'   => ['title' => 'Your agent',       'done' => in_array('agent', $answered, true)],
   ];
+}
+
+function setup_answered() {
+  return preg_split('/[\s,]+/', (string)setting('setup_answered'), -1, PREG_SPLIT_NO_EMPTY);
+}
+
+function setup_mark_answered($step) {
+  $answered = setup_answered();
+  if (!in_array($step, $answered, true)) {
+    $answered[] = $step;
+    setting_set('setup_answered', implode(',', $answered));
+  }
 }
 
 // Where somebody who just opens setup.php should land: the first thing not yet answered, or the end
@@ -75,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           ($health['error'] ?: '') . ' Check the name and try again — or carry on, if you know the ' .
           'instance is simply down at the moment.');
       }
+      setup_mark_answered('company');
       header('Location: setup.php?step=key');
       exit;
     }
@@ -93,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         throw new RuntimeException('That key was not accepted: ' . $tasks['error'] .
           ' It needs the "task creator" permission or better. Issue another and try again.');
       }
+      setup_mark_answered('key');
       header('Location: setup.php?step=work');
       exit;
     }
@@ -116,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($secret !== '') {
         setting_set('webhook_secret', $secret);
       }
+      setup_mark_answered('work');
       header('Location: setup.php?step=agent');
       exit;
     }
@@ -138,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
       setting_set('agent_command', $command);
       setting_set('default_model', trim((string)($_POST['default_model'] ?? '')) ?: 'sonnet');
+      setup_mark_answered('agent');
       header('Location: setup.php?step=done');
       exit;
     }
@@ -147,7 +168,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $steps = setup_steps();
-$position = array_search($step, array_keys($steps), true);
 
 view_header('Setup', true);
 ?>

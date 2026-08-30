@@ -70,26 +70,30 @@ function checks_run($deep = true) {
   }
   $out[] = check('pass', 'Instance configured', instance_base());
 
+  // Reachability first, and independently of the key. /api/health wants no token, so "the address is
+  // wrong" and "the key is wrong" stay two different answers instead of one confusing one.
+  $reachable = true;
+  if ($deep) {
+    $health = upstream_health();
+    $reachable = $health['ok'];
+    $out[] = $health['ok']
+      ? check('pass', 'Instance answers', 'GET /api/health')
+      : check('fail', 'Instance does not answer', $health['error'], 'settings.php');
+  }
+
   if (!setting_secret_is_set('api_key')) {
     $out[] = check('fail', 'No API key',
       'Issue one on the instance — sign in there as a company admin, API keys in the menu, New key, ' .
       'permission "task creator" — then paste it into the settings page here. It is shown once.',
       instance_base() . '/keys.php');
-  } elseif ($deep) {
-    $health = upstream_health();
-    $out[] = $health['ok']
-      ? check('pass', 'Instance answers', 'GET /api/health')
-      : check('fail', 'Instance does not answer', $health['error']);
-
-    if ($health['ok']) {
-      $tasks = upstream_open_tasks('any');
-      $out[] = $tasks['ok']
-        ? check('pass', 'API key works',
-            count($tasks['json']['tasks'] ?? []) . ' task(s) open on the instance right now')
-        : check('fail', 'API key refused', $tasks['error'] .
-            ' — the key needs the task creator permission or better. Revoke it and issue another.',
-            instance_base() . '/keys.php');
-    }
+  } elseif ($deep && $reachable) {
+    $tasks = upstream_open_tasks('any');
+    $out[] = $tasks['ok']
+      ? check('pass', 'API key works',
+          count($tasks['json']['tasks'] ?? []) . ' task(s) open on the instance right now')
+      : check('fail', 'API key refused', $tasks['error'] .
+          ' — the key needs the task creator permission or better. Revoke it and issue another.',
+          instance_base() . '/keys.php');
   } else {
     $out[] = check('pass', 'API key is stored');
   }

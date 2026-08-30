@@ -78,6 +78,11 @@ function bbl_setting_defaults() {
     // Written by the runner at the end of every pass. The only way the pages can tell "nothing has
     // arrived" apart from "nothing is looking", which are the same picture and different problems.
     'last_pass_at'          => '',
+
+    // Which setup questions have actually been answered. Two of the four have a working default, so
+    // the settings behind them cannot say whether anybody has read them — and those two are the pair
+    // most worth having read.
+    'setup_answered'        => '',
   ];
 }
 

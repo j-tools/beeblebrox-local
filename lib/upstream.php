@@ -14,24 +14,28 @@
 
 require_once __DIR__ . '/settings.php';
 
-function upstream_request($method, $url, $body = null, $accept = 'application/json') {
+// $authenticated is false for the one endpoint that does not want a token. Everything else does, and
+// missing one is reported as the configuration problem it is rather than as a 401 from the instance.
+function upstream_request($method, $url, $body = null, $accept = 'application/json',
+                          $authenticated = true) {
   if (!url_is_upstream($url)) {
     return ['ok' => false, 'status' => 0, 'body' => '', 'json' => null,
             'error' => "Refused to call {$url}: it is not on the configured instance (" .
                        (instance_base() ?: 'none set') . ')'];
   }
 
-  $key = setting_secret('api_key');
-  if ($key === '') {
-    return ['ok' => false, 'status' => 0, 'body' => '', 'json' => null,
-            'error' => 'No API key is configured, so the instance cannot be called.'];
-  }
-
   $headers = [
-    'Authorization: Bearer ' . $key,
     'Accept: ' . $accept,
     'User-Agent: beeblebrox-local/1',
   ];
+  if ($authenticated) {
+    $key = setting_secret('api_key');
+    if ($key === '') {
+      return ['ok' => false, 'status' => 0, 'body' => '', 'json' => null,
+              'error' => 'No API key is configured, so the instance cannot be called.'];
+    }
+    $headers[] = 'Authorization: Bearer ' . $key;
+  }
   $ch = curl_init($url);
   $options = [
     CURLOPT_CUSTOMREQUEST  => $method,
@@ -72,10 +76,12 @@ function upstream_request($method, $url, $body = null, $accept = 'application/js
   return ['ok' => $ok, 'status' => $status, 'body' => $text, 'json' => $json, 'error' => $error];
 }
 
-// Unauthenticated on the instance, but it still goes through the URL check, because the useful
-// question is "can I reach the instance I am configured for", not "can I reach a host".
+// Unauthenticated on the instance, and asked that way here too — which matters, because the first
+// thing setup does is check the address somebody just typed, and that happens before there is a key
+// to send. It still goes through the URL check: the useful question is "can I reach the instance I am
+// configured for", not "can I reach a host".
 function upstream_health() {
-  return upstream_request('GET', instance_base() . '/api/health');
+  return upstream_request('GET', instance_base() . '/api/health', null, 'application/json', false);
 }
 
 function upstream_url($path) {

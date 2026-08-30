@@ -87,7 +87,9 @@
   font-size: .8rem;
   font-weight: 700;
 }
-.steps strong { display: block; margin-bottom: .15rem; }
+/* Only the step title is a block. Bold inside a step's wording stays inline, or a phrase like
+   "permission task creator" breaks across three lines mid-sentence. */
+.steps > li > strong { display: block; margin-bottom: .15rem; }
 .steps span { color: var(--muted); font-size: .9rem; }
 
 /* A form row where the field and its explanation belong together. */
