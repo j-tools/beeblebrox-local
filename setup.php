@@ -68,6 +68,15 @@ if (!isset($steps[$step]) && $step !== 'done') {
 $error = null;
 $notice = null;
 
+// Something true and worth acting on that is not a failure — so neither the red flash nor the green
+// one. Carried across the redirect that leaves the step where it was found, because the next screen
+// is where somebody can still do something about it.
+$warning = null;
+if (!empty($_SESSION['setup_worker_warning'])) {
+  $warning = $_SESSION['setup_worker_warning'];
+  unset($_SESSION['setup_worker_warning']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   bbl_check_csrf();
   $step = $_POST['step'] ?? $step;
@@ -106,10 +115,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($key !== '') {
         setting_set('api_key', $key);
       }
-      $tasks = upstream_open_tasks('any');
-      if (!$tasks['ok']) {
-        throw new RuntimeException('That key was not accepted: ' . $tasks['error'] .
+      $who = upstream_whoami();
+      // An instance older than this worker has no /api/whoami. Fall back to a call every release
+      // has, so setting up against one still works — it just cannot confirm which worker this is.
+      if ($who['status'] === 404) {
+        $tasks = upstream_open_tasks();
+        if (!$tasks['ok']) {
+          throw new RuntimeException('That key was not accepted: ' . $tasks['error'] .
+            ' It needs the "task creator" permission or better. Issue another and try again.');
+        }
+        $_SESSION['setup_worker_warning'] =
+          'That key works. This instance is running a release older than this worker, though, so it ' .
+          'cannot say which worker the key belongs to — and until it is deployed, this machine will ' .
+          'be offered every task meant for a machine rather than only its own.';
+        setup_mark_answered('key');
+        header('Location: setup.php?step=work');
+        exit;
+      }
+      if (!$who['ok']) {
+        throw new RuntimeException('That key was not accepted: ' . $who['error'] .
           ' It needs the "task creator" permission or better. Issue another and try again.');
+      }
+      // Not fatal: a key belonging to no worker still works, it is just shown every machine's queue.
+      // Said here rather than left to the diagnostics page, because this is the moment it can be
+      // fixed by issuing a different key, and five minutes later it is a mystery.
+      if (($who['json']['worker'] ?? null) === null) {
+        $_SESSION['setup_worker_warning'] =
+          'That key works, but it does not belong to a worker — so this machine will be offered ' .
+          'every task meant for a machine, including other workers\'. That is only safe while this ' .
+          'is the only one. Issue a key that belongs to a worker to fix it.';
+      } else {
+        unset($_SESSION['setup_worker_warning']);
       }
       setup_mark_answered('key');
       header('Location: setup.php?step=work');
@@ -131,7 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
       setting_set('poll_enabled', $poll ? '1' : '0');
       setting_set('accept_webhooks', $hook ? '1' : '0');
-      setting_set('poll_roles', trim((string)($_POST['poll_roles'] ?? '')));
       if ($secret !== '') {
         setting_set('webhook_secret', $secret);
       }
@@ -189,6 +224,11 @@ view_masthead();
 </ol>
 
 <?php view_flash($error, $notice); ?>
+
+<?php if ($warning !== null): ?>
+  <div class="card"><p class="small" style="margin:0"><strong>Worth knowing.</strong>
+    <?= h($warning) ?></p></div>
+<?php endif; ?>
 
 <?php if ($step === 'company'): ?>
   <div class="card">
@@ -256,15 +296,9 @@ view_masthead();
       <label class="inline"><input type="checkbox" name="poll_enabled" value="1"
         <?= setting_bool('poll_enabled') ? 'checked' : '' ?>> Ask the instance for work</label>
       <p class="small muted" style="margin:0">Needs nothing from your network — no port forward, no
-         tunnel. Each pass of the runner asks once. This is the one to use unless you have a reason
-         not to.</p>
-
-      <label>Roles this machine works
-        <input type="text" name="poll_roles" value="<?= h(setting('poll_roles')) ?>"
-               placeholder="developer, tester">
-        <small>Comma separated, spelled as your instance spells them. Leave it empty while this is
-          the only worker; name them as soon as there is a second.</small>
-      </label>
+         tunnel. Each pass of the runner asks once, and gets back this worker's own open tasks.
+         There is nothing here to choose: which work is this worker's was decided on the instance,
+         on its roles and its projects. This is the one to use unless you have a reason not to.</p>
 
       <label class="inline"><input type="checkbox" name="accept_webhooks" value="1"
         <?= setting_bool('accept_webhooks') ? 'checked' : '' ?>> Let the instance push work here</label>

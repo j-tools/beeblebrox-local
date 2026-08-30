@@ -87,13 +87,49 @@ function checks_run($deep = true) {
       'permission "task creator" — then paste it into the settings page here. It is shown once.',
       instance_base() . '/keys.php');
   } elseif ($deep && $reachable) {
-    $tasks = upstream_open_tasks('any');
-    $out[] = $tasks['ok']
-      ? check('pass', 'API key works',
-          count($tasks['json']['tasks'] ?? []) . ' task(s) open on the instance right now')
-      : check('fail', 'API key refused', $tasks['error'] .
-          ' — the key needs the task creator permission or better. Revoke it and issue another.',
+    $who = upstream_whoami();
+    if ($who['status'] === 404) {
+      // The endpoint arrived with worker keys. A 404 means the instance is running a release older
+      // than this worker, which is a deploy away from fixed — and nothing like "your key is wrong",
+      // which is what the message below would otherwise say.
+      $out[] = check('warn', 'This instance is older than this worker',
+        'It has no /api/whoami, so it cannot say which worker this key belongs to and cannot filter ' .
+        'a queue by worker either. Deploy the instance; nothing here needs changing.');
+      $tasks = upstream_open_tasks();
+      $out[] = $tasks['ok']
+        ? check('pass', 'API key works',
+            count($tasks['json']['tasks'] ?? []) . ' open task(s) it can see')
+        : check('fail', 'API key refused', $tasks['error'], instance_base() . '/keys.php');
+    } elseif (!$who['ok']) {
+      $out[] = check('fail', 'API key refused', $who['error'] .
+        ' — the key needs the task creator permission or better. Revoke it and issue another.',
+        instance_base() . '/keys.php');
+    } else {
+      $worker = $who['json']['worker'] ?? null;
+      $out[] = check('pass', 'API key works',
+        'it is "' . ($who['json']['key']['name'] ?? '?') . '" on ' .
+        ($who['json']['company'] ?? instance_base()));
+
+      // The check that matters most on a machine that pulls. A key belonging to no worker is shown
+      // every worker's queue, which on an instance with one worker looks identical to working
+      // correctly and stops doing so the moment there are two.
+      if ($worker === null) {
+        $out[] = check('warn', 'This key belongs to no worker',
+          'It is shown every task meant for a machine, including other workers\'. Issue a key that ' .
+          'belongs to this one and the instance will hand it only its own work.',
           instance_base() . '/keys.php');
+      } elseif (empty($worker['is_active'])) {
+        $out[] = check('warn', 'This worker is paused on the instance',
+          $worker['name'] . ' is deactivated there, so nothing will be dispatched to it and polling ' .
+          'will find nothing. That is a switch, not a fault — turn it back on when you want work.',
+          instance_base() . '/dispatchers.php');
+      } else {
+        $tasks = upstream_open_tasks();
+        $out[] = check('pass', 'This machine is ' . $worker['name'],
+          ($tasks['ok'] ? count($tasks['json']['tasks'] ?? []) : '?') .
+          ' task(s) waiting for it right now. Which work that is, is decided on the instance.');
+      }
+    }
   } else {
     $out[] = check('pass', 'API key is stored');
   }
@@ -107,8 +143,7 @@ function checks_run($deep = true) {
   } else {
     $ways = [];
     if ($poll) {
-      $roles = trim((string)setting('poll_roles'));
-      $ways[] = 'polling for ' . ($roles === '' ? 'any role' : $roles);
+      $ways[] = 'asking the instance for its work';
     }
     if ($hook) {
       $ways[] = 'webhooks at ' . rtrim($cfg['site_url'], '/') . '/hook.php';

@@ -58,34 +58,32 @@ function runner_poll(array &$log) {
   if (!setting_bool('poll_enabled')) {
     return 0;
   }
-  $roles = preg_split('/[\s,]+/', (string)setting('poll_roles'), -1, PREG_SPLIT_NO_EMPTY);
-  $dispatch = (string)setting('poll_dispatch');
-  $accepted = 0;
 
-  // One request per configured role, because the API filters by a single role. No roles configured
-  // means one request for everything, which is the "I am the only worker" case.
-  foreach ($roles ?: [null] as $role) {
-    $result = upstream_open_tasks($dispatch, $role);
-    if (!$result['ok']) {
-      $log[] = 'poll: ' . $result['error'];
-      continue;
-    }
-    foreach ($result['json']['tasks'] ?? [] as $task) {
-      [$job_id, $how] = job_accept([
-        'source'            => 'poll',
-        'upstream_task_id'  => (int)$task['id'],
-        'upstream_chain_id' => isset($task['chain_id']) ? (int)$task['chain_id'] : null,
-        'project_id'        => $task['project_id'] ?? null,
-        'role_slug'         => $task['role_slug'] ?? null,
-        'depth'             => (int)($task['depth'] ?? 0),
-        'attempt'           => (int)($task['attempt'] ?? 1),
-        'is_test'           => !empty($task['is_test']),
-        'envelope'          => json_encode($task, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-      ]);
-      if ($how === 'created') {
-        $accepted++;
-        $log[] = "poll: took task {$task['id']} ({$task['role_slug']}) as job {$job_id}";
-      }
+  // One request, and nothing is filtered here. The key says which worker this is and the instance
+  // answers with that worker's open tasks; deciding again on this end which of them to take would
+  // only be a way to disagree with it.
+  $result = upstream_open_tasks();
+  if (!$result['ok']) {
+    $log[] = 'poll: ' . $result['error'];
+    return 0;
+  }
+
+  $accepted = 0;
+  foreach ($result['json']['tasks'] ?? [] as $task) {
+    [$job_id, $how] = job_accept([
+      'source'            => 'poll',
+      'upstream_task_id'  => (int)$task['id'],
+      'upstream_chain_id' => isset($task['chain_id']) ? (int)$task['chain_id'] : null,
+      'project_id'        => $task['project_id'] ?? null,
+      'role_slug'         => $task['role_slug'] ?? null,
+      'depth'             => (int)($task['depth'] ?? 0),
+      'attempt'           => (int)($task['attempt'] ?? 1),
+      'is_test'           => !empty($task['is_test']),
+      'envelope'          => json_encode($task, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+    ]);
+    if ($how === 'created') {
+      $accepted++;
+      $log[] = "poll: took task {$task['id']} ({$task['role_slug']}) as job {$job_id}";
     }
   }
   return $accepted;

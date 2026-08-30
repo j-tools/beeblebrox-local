@@ -44,13 +44,12 @@ function bbl_setting_defaults() {
     // The other way work arrives, and the one that needs no inbound networking at all: ask the
     // instance what is open and take it. This is the default because a laptop behind a router cannot
     // receive a webhook without a tunnel, and asking is free.
+    //
+    // There is deliberately nothing here about *which* work. The key identifies this machine as one
+    // of the instance's workers, and the instance answers with that worker's queue — decided there,
+    // per role and per project, where the decision already had to be made. Repeating it here would be
+    // a second copy of the same answer on a machine nobody remembers to edit.
     'poll_enabled'          => '1',
-    // Which roles this machine will pick up. Empty means any, which is almost never what you want
-    // once a second worker exists.
-    'poll_roles'            => '',
-    // 'webhook' takes only work whose role is dispatched to a webhook — the work meant for a machine.
-    // 'manual' takes work nothing else will start. 'any' takes both.
-    'poll_dispatch'         => 'webhook',
 
     // The agent, as an argv template. Parsed into arguments here and executed without a shell, so
     // nothing in a ticket can become part of a command line. The prompt goes in on stdin.

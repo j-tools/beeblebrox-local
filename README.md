@@ -30,8 +30,13 @@ Two ways in, and you can use either or both:
 
 - **Webhooks.** The instance posts a signed envelope naming a task. Needs the instance to be able to
   reach this machine — a port forward, or a tunnel.
-- **Polling.** This asks the instance what is open and takes what it is configured to work. Needs no
-  inbound networking, which is why it is on by default.
+- **Polling.** This asks the instance for its own work. Needs no inbound networking, which is why it
+  is on by default.
+
+**One instance can drive several of these.** Each machine is a dispatcher on the instance and holds a
+key that belongs to it, so asking for open tasks returns that machine's work and nobody else's. Which
+work that is gets decided there, per role and per project — this end is never told what to ignore,
+which means there is no second copy of the answer to keep in step.
 
 Either way the envelope names the task and never carries the work. The briefing is fetched
 separately with this machine's own API key, which keeps it out of transit and out of anybody's logs.

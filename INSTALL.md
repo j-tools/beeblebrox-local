@@ -103,20 +103,36 @@ obvious, skip them if it is.
 
 For a quick look without Apache, `php -S 127.0.0.1:8774 -t .` serves it just as well.
 
-## 5. Get an API key from the instance
+## 5. Tell the instance this worker exists, and get a key
 
 Set the **instance URL** on the settings page here first and press Save. A link to that instance's key
 page appears under the API key box, which saves assembling the address by hand.
 
-Then, on the instance:
+Then, on the instance, sign in as a **company admin** — the only permission that can do either of the
+next two things.
 
-1. Sign in to it as a **company admin** — that is the only permission that can issue a key.
-2. **API keys** in the menu, or `<instance>/keys.php` directly.
-3. **New key**. Name it after this machine, so a year from now it is obvious which one it is.
-4. Permission **task creator** — read everything, claim, and report, which is exactly what a worker
+**Make a dispatcher for this machine.** Dispatchers in the menu → **New dispatcher**. Name it after
+the machine, give it a short name like `laptop`, and set **How it is reached** to **pull**: this
+machine comes and asks, which is what a machine behind a router has to do. A pull worker needs no URL
+and no signing secret. Choose **webhook** only if the instance can actually reach this address — see
+section 8.
+
+**Then issue it a key.** API keys in the menu → **New key**:
+
+1. Name it after this machine, so a year from now it is obvious which one it is.
+2. Permission **task creator** — read everything, claim, and report, which is exactly what a worker
    needs and nothing more.
-5. Optionally pin it to one project. Only do that if this machine works that project and nothing
+3. **Belongs to a worker**: the dispatcher you just made. This is the important one. A key that
+   belongs to a worker is shown only that worker's tasks, so this machine never has to be told what
+   to ignore — and a key that belongs to none is shown every machine's work, which looks identical to
+   working correctly right up until there are two workers.
+4. Optionally pin it to one project. Only do that if this machine works that project and nothing
    else: a pinned key cannot touch work that has no project yet, which is everything at triage.
+
+Which work this worker actually gets is then decided entirely on the instance, by pointing roles at
+that dispatcher — per role, and per project if you take a project's own copy of a role. Nothing here
+needs changing when that changes, and deactivating the dispatcher stops the worker without touching
+this machine at all.
 
 The key is shown once, on that page, and only a hash is kept — so copy it straight into the API key
 box here. If it goes missing, revoke it there and issue another.
@@ -175,23 +191,24 @@ ticket can become part of a command line. Placeholders: `{model}`, `{workspace}`
 
 ## 8. Decide how work arrives
 
-**Polling** is on by default and needs nothing inbound. Each pass of the runner asks the instance
-what is open and takes what matches the roles you listed. If this is the only worker you can leave
-the role list empty, but as soon as there is a second, name them.
+**Polling** is on by default and needs nothing inbound. Each pass of the runner asks the instance one
+question and gets back this worker's own open tasks. There is nothing to configure: the key says
+which worker this is, and which work is that worker's was decided on the instance in section 5.
 
-**Webhooks** are faster and need the instance to be able to reach this machine. On the instance, add
-a dispatcher:
+**Webhooks** are faster and need the instance to be able to reach this machine. If it can, change the
+dispatcher you made in section 5 from `pull` to `webhook` and fill in:
 
 | | |
 |---|---|
-| kind | `webhook` |
 | URL | `http://local.beeblebrox.cloud/hook.php` |
 | secret | the same string you put in **Signing secret** here |
 | timeout | 10 seconds — accepting is all this has to do |
 
-Then point the roles you want run here at that dispatcher, and use its test button: it sends a real
-signed envelope naming task 0, which no task ever is, and the result shows on the diagnostics page
-either way.
+Its test button then sends a real signed envelope naming task 0, which no task ever is, and the
+result shows on the diagnostics page either way.
+
+You can leave polling on as well. A pushed envelope and a poll that finds the same task land on one
+job — the task id is unique here — so the two cannot start the same work twice.
 
 For the instance to reach a laptop you need a port forward or a tunnel. If you use a tunnel, leave
 **Allowed addresses** empty — the address envelopes arrive from belongs to the tunnel and is not
@@ -237,9 +254,11 @@ arrived with the reason each was accepted or refused.
 
 ## When something does not happen
 
-**Nothing arrives at all.** Diagnostics will say if the runner has not run. If it has, and polling is
-on, check that the roles you listed match the instance's slugs exactly, and that **Which work** is
-not set to something narrower than you meant.
+**Nothing arrives at all.** Diagnostics answers this in order. It says whether the runner has run at
+all; then which worker this machine is, which is the line to read — if it says the key belongs to no
+worker, that is the problem. If it names the right worker and still nothing comes, the work is not
+pointed at it: on the instance, check that the roles you expect are set to that dispatcher, and that
+the dispatcher is in service rather than retired.
 
 **Envelopes are refused.** The diagnostics page gives the reason for each. `the signature does not
 match` means the two secrets differ. `the timestamp is Ns away from this machine's clock` means the

@@ -21,7 +21,7 @@ $notice = null;
 // "empty means leave it alone" is true for those and false for these.
 $plain = [
   'instance_url', 'company_name', 'accept_webhooks', 'signature_tolerance', 'allowed_ips',
-  'poll_enabled', 'poll_roles', 'poll_dispatch',
+  'poll_enabled',
   'agent_command', 'agent_timeout_seconds', 'default_model',
   'workspace_root', 'max_jobs_per_run', 'report_max_attempts',
 ];
@@ -159,23 +159,10 @@ view_flash($error, $notice);
   <label class="inline"><input type="checkbox" name="poll_enabled" value="1"
     <?= setting_bool('poll_enabled') ? 'checked' : '' ?>> Ask the instance for work</label>
   <p class="small muted" style="margin:0">Needs nothing inbound at all, which is why it is on by
-     default. Each pass of the runner asks once.</p>
-  <label>Roles this machine works
-    <input type="text" name="poll_roles" value="<?= h(setting('poll_roles')) ?>"
-           placeholder="developer, tester">
-    <small>Comma separated, using the instance's slugs. Empty means any role, which is only right
-      while this is the only worker.</small>
-  </label>
-  <label>Which work
-    <select name="poll_dispatch">
-<?php foreach (['webhook' => 'work meant for a machine (dispatched to a webhook)',
-                'manual'  => 'work nothing else will start',
-                'any'     => 'both'] as $value => $label): ?>
-      <option value="<?= h($value) ?>" <?= setting('poll_dispatch') === $value ? 'selected' : '' ?>>
-        <?= h($label) ?></option>
-<?php endforeach; ?>
-    </select>
-  </label>
+     default. Each pass of the runner asks once, and the instance answers with this worker's own
+     open tasks — there is nothing to choose here, because which work that is was decided there, on
+     the roles and the projects. Give this worker more by pointing more roles at its dispatcher;
+     stop it by deactivating that dispatcher.</p>
 
   <h3>The agent</h3>
   <label>Command

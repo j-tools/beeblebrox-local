@@ -88,17 +88,19 @@ function upstream_url($path) {
   return instance_base() . '/' . ltrim($path, '/');
 }
 
-// Open work the instance is willing to hand out. dispatch filters by how a task is meant to be
-// started: 'webhook' is work meant for a machine, 'manual' is work nothing else will start.
-function upstream_open_tasks($dispatch = 'webhook', $role = null) {
-  $query = ['status' => 'open'];
-  if ($dispatch !== 'any') {
-    $query['dispatch'] = $dispatch;
-  }
-  if ($role !== null && $role !== '') {
-    $query['role'] = $role;
-  }
-  return upstream_request('GET', upstream_url('api/tasks') . '?' . http_build_query($query));
+// Open work this machine is meant to do.
+//
+// One question, no filters. The key names this machine as one of the instance's workers, so the
+// instance answers with that worker's queue — and which work that is was decided there, per role and
+// per project. Asking for anything narrower would be second-guessing the answer.
+function upstream_open_tasks() {
+  return upstream_request('GET', upstream_url('api/tasks') . '?status=open');
+}
+
+// Which key this is, and which worker it belongs to. The only way this end can confirm that the
+// string somebody pasted is the one they meant.
+function upstream_whoami() {
+  return upstream_request('GET', upstream_url('api/whoami'));
 }
 
 // Everything about one task: its role and briefing, the project, and — the part that decides what a
