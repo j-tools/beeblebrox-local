@@ -201,3 +201,24 @@ table.grid th { color: var(--muted); font-weight: 600; font-size: .78rem; text-t
   align-items: center;
   min-height: 2.75rem;
 }
+
+/* The in-page mark. Deliberately several times the bar's, so the two read as chrome and masthead
+   rather than as the same thing printed twice a few pixels apart. */
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  margin: 1.6rem 0 .4rem;
+  color: inherit;
+  text-decoration: none;
+}
+.masthead img { width: 5.5rem; height: 5.5rem; border-radius: .9rem; flex: none; display: block; }
+.masthead-words { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.masthead-name { font-size: 2rem; font-weight: 700; letter-spacing: -.02em; }
+.masthead-sub { font-size: 1rem; color: var(--muted); margin-top: .2rem; }
+.masthead:hover .masthead-name { text-decoration: underline; }
+
+@media (max-width: 30rem) {
+  .masthead img { width: 3.25rem; height: 3.25rem; }
+  .masthead-name { font-size: 1.3rem; }
+}

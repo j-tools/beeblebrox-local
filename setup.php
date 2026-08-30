@@ -170,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $steps = setup_steps();
 
 view_header('Setup', true);
+view_masthead();
 ?>
 
 <h2>Setting up</h2>

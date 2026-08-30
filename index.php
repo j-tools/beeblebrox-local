@@ -31,6 +31,7 @@ if ($reachable) {
 
 if (!$reachable || !bbl_signed_in()) {
   view_header('A worker on your own machine', false);
+  view_masthead();
   ?>
   <p class="lede">Your Beeblebrox instance runs the pipeline. This runs (some of) the work — on your
      own machine, in your own checkouts, with your own agent and your own keys. Nothing leaves the

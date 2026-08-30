@@ -72,6 +72,27 @@ function view_duration($ms) {
   return intdiv($seconds, 60) . 'm ' . ($seconds % 60) . 's';
 }
 
+// A full-size mark inside the page, for the two screens where somebody is still working out what
+// this is: the front door and the setup they walk through once. Everywhere else the bar carries it,
+// and a logo on every screen of a tool used daily is decoration rather than identity.
+//
+// Same target as the bar — the company's own instance once there is one, beeblebrox.cloud until
+// then. The image is decorative here because the words beside it already say the name, and a screen
+// reader announcing it twice is worse than not announcing it.
+function view_masthead() {
+  $company = view_company();
+  ?>
+  <a class="masthead" href="<?= h(view_home_url()) ?>" target="_blank" rel="noopener"
+     title="<?= h($company === '' ? 'What Beeblebrox is' : 'Open ' . $company) ?>">
+    <img src="assets/favicon-180.png" alt="">
+    <span class="masthead-words">
+      <span class="masthead-name"><?= h($company === '' ? 'Beeblebrox' : $company . ' Beeblebrox') ?></span>
+      <span class="masthead-sub">Local worker</span>
+    </span>
+  </a>
+<?php
+}
+
 function view_head($title) {
   ?>
   <meta charset="utf-8">
