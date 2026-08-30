@@ -1,0 +1,3 @@
+# Substituted when `git archive` builds the download zip, so a copy that arrived as a zip can still
+# say which commit it is. In a git checkout these stay literal — there, `git log` is the answer.
+VERSION export-subst
