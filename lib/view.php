@@ -30,6 +30,20 @@ function view_settings_readable() {
   return $ok;
 }
 
+// The company this machine works for, or '' while that is still unknown — including when the
+// database cannot be asked, which is a different reason for the same answer and wants the same
+// treatment on a page.
+function view_company() {
+  return view_settings_readable() && instance_base() !== '' ? company_name() : '';
+}
+
+// Where the mark in the bar points: the customer's own instance once there is one, and the public
+// site until then, which is the honest answer to "what is this thing" at the moment somebody is
+// most likely to be asking it.
+function view_home_url() {
+  return view_company() === '' ? bbl_public_site() : instance_base();
+}
+
 // Compared against the database clock rather than PHP's. The two are not reliably in step on a
 // machine that has been asleep, and a PHP-computed difference can be hours out.
 function view_ago($datetime) {
@@ -108,25 +122,26 @@ function view_header($title, $signed_in = false) {
 <?php if ($signed_in): ?>
   <label for="drawer-toggle" class="hamburger" title="Menu" aria-label="Menu"><span></span></label>
 <?php endif; ?>
-<?php // Two things side by side: the mark goes home, the wording goes to the instance it names. The
-      // instance is a different host on a different machine and the one somebody in this window
-      // regularly wants to get back to, so it earns the larger target. ?>
-  <a class="brand-mark" href="index.php" title="Dashboard">
-    <img src="assets/favicon-32.png" width="28" height="28" alt="Beeblebrox">
-  </a>
-<?php if (view_settings_readable() && instance_base() !== ''): ?>
-  <a class="brand" href="<?= h(instance_base()) ?>" target="_blank" rel="noopener"
-     title="Open <?= h(parse_url(instance_base(), PHP_URL_HOST)) ?>">
-    <span class="brand-kicker">Local work for</span>
-    <span class="brand-company"><?= h(company_name()) ?> <span class="muted">Beeblebrox</span></span>
-  </a>
+<?php
+  // The mark and the wording are one link, because they name one thing. It leads out of here rather
+  // than to the dashboard: the instance is on another machine and is the thing somebody in this
+  // window wants to get back to, and before there is an instance the public site is the only honest
+  // answer to what this is. Getting home is the drawer's job, which is where it was anyway.
+  $company = view_company();
+?>
+  <a class="brand-block" href="<?= h(view_home_url()) ?>" target="_blank" rel="noopener"
+     title="<?= h($company === '' ? 'What Beeblebrox is' : 'Open ' . $company) ?>">
+    <img class="brand-mark" src="assets/favicon-32.png" width="28" height="28" alt="Beeblebrox">
+    <span class="brand">
+<?php if ($company !== ''): ?>
+      <span class="brand-kicker">Local work for</span>
+      <span class="brand-company"><?= h($company) ?> <span class="muted">Beeblebrox</span></span>
 <?php else: ?>
-  <?php // Before setup there is nowhere to point it, and a link that goes nowhere is worse than none. ?>
-  <span class="brand">
-    <span class="brand-kicker">Not set up yet</span>
-    <span class="brand-company">Beeblebrox <span class="muted">Local</span></span>
-  </span>
+      <span class="brand-kicker">Beeblebrox</span>
+      <span class="brand-company">Local worker</span>
 <?php endif; ?>
+    </span>
+  </a>
 <?php if ($signed_in): ?>
   <span class="bar-counts">
     <a href="jobs.php?status=attention" class="count<?= $needs_attention ? ' count-live' : '' ?>">

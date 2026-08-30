@@ -151,9 +151,13 @@ function instance_base() {
 
 // What the company is called, falling back to the instance's own name — which is the same word in
 // every hosted case, since an instance is <company>.beeblebrox.cloud.
+//
+// Capitalised on the way out, because the fallback is a hostname label and a bar reading "zaphod
+// Beeblebrox" looks like something went wrong rather than like a name. Anything typed on the
+// settings page is used exactly as typed.
 function company_name() {
   $name = trim((string)setting('company_name'));
-  return $name !== '' ? $name : instance_name();
+  return $name !== '' ? $name : ucfirst(instance_name());
 }
 
 // The first label of the instance's hostname: 'zaphod' out of zaphod.beeblebrox.cloud. This is the

@@ -32,10 +32,11 @@ if ($reachable) {
 if (!$reachable || !bbl_signed_in()) {
   view_header('A worker on your own machine', false);
   ?>
-  <h2>What this is</h2>
-  <p class="lede">A Beeblebrox instance runs the pipeline. This runs the work — on your own machine,
-     in your own checkouts, with your own agent and your own keys. Nothing leaves the machine except
-     the result.</p>
+  <p class="lede">Your Beeblebrox instance runs the pipeline. This runs (some of) the work — on your
+     own machine, in your own checkouts, with your own agent and your own keys. Nothing leaves the
+     machine except the result. You will need a local Claude Code instance
+     (<a href="<?= h(bbl_agent_install_url()) ?>" target="_blank" rel="noopener">installation
+     instructions</a>).</p>
 
   <ol class="steps">
     <li><strong>Work arrives</strong>

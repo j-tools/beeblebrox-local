@@ -45,6 +45,19 @@ function bbl_config() {
   return $cfg;
 }
 
+// The public Beeblebrox site. Anything explaining Beeblebrox itself lives there, as opposed to an
+// instance, which belongs to one company. Not configurable — it is the same site for every customer,
+// and a setting nobody would ever change is a setting somebody can get wrong.
+function bbl_public_site() {
+  return 'https://beeblebrox.cloud';
+}
+
+// Installing Claude Code so this can drive it. A page on the public site rather than a section of
+// INSTALL.md, because the person who needs it is looking at a browser, not at a repository.
+function bbl_agent_install_url() {
+  return bbl_public_site() . '/local-worker';
+}
+
 // A human label for which instance this checkout serves, used in the page title and in log lines so a
 // beta window and a production window are never mistaken for each other.
 function bbl_env_label() {
