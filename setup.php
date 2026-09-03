@@ -409,10 +409,12 @@ view_masthead();
 
       <label class="inline"><input type="checkbox" name="accept_webhooks" value="1"
         <?= setting_bool('accept_webhooks') ? 'checked' : '' ?>> Let the instance push work here</label>
-      <p class="small muted" style="margin:0">Faster, but your instance has to be able to reach this
-         machine — a port forward or a tunnel to
+      <p class="small muted" style="margin:0">Faster — work starts the moment it is assigned rather
+         than at the next pass — but your instance has to be able to reach this machine, through a
+         port forward or a tunnel to
          <code><?= h(rtrim(bbl_config()['site_url'], '/')) ?>/hook.php</code>. You can turn this on
-         later.</p>
+         later. Either way the runner still needs a schedule: an envelope arriving writes the task
+         down, and the runner is what does it.</p>
       <label>Signing secret
         <input type="password" name="webhook_secret" autocomplete="off"
                placeholder="<?= setting_secret_is_set('webhook_secret')
@@ -475,10 +477,24 @@ view_masthead();
         <span>The instance says a task belongs to a project; only this machine knows which directory
           that is. Work for an unmapped project stops and asks rather than running somewhere
           plausible. <a href="projects.php">Map them</a>.</span></li>
+<?php // Somebody who has just chosen to be pushed to reasonably reads "runs every minute" as
+      // polling, and wonders why they need it. They do, and this is the one place to say why. ?>
+<?php if (setting_bool('accept_webhooks')): ?>
+      <li><strong>Put the runner on a schedule — yes, even though work is pushed here</strong>
+        <span>An envelope arriving only writes the task down. Accepting is all the receiver does,
+          deliberately: your instance waits seconds for that, and an agent takes minutes, so a run
+          happening inside the delivery would make every one of them time out.
+          <code>tools/run.php</code> is what claims the task, runs the agent and reports back — so
+          nothing happens at all until it is on a schedule. The command is in
+          <code>INSTALL.md</code>, section 9 — run it as your own account, not as a service account,
+          since the agent needs your PATH and your checkouts.</span></li>
+<?php else: ?>
       <li><strong>Put the runner on a schedule</strong>
-        <span>Nothing happens on its own until <code>tools/run.php</code> runs every minute. The
-          command is in <code>INSTALL.md</code>, section 9 — run it as your own account, not as a
-          service account, since the agent needs your PATH and your checkouts.</span></li>
+        <span><code>tools/run.php</code> is what asks your instance for work, runs the agent and
+          reports back, so nothing happens at all until it runs. The command is in
+          <code>INSTALL.md</code>, section 9 — run it as your own account, not as a service account,
+          since the agent needs your PATH and your checkouts.</span></li>
+<?php endif; ?>
     </ol>
     <div class="actions">
       <a class="secondary" href="diagnostics.php">Check everything</a>
