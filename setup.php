@@ -52,6 +52,32 @@ function setup_mark_answered($step) {
   }
 }
 
+// The step before this one, or null at the front. Every answer is saved as it is given and every
+// form fills itself from what was saved, so going back shows what you said rather than an empty
+// screen — which is the only thing that makes a back button worth having.
+function setup_previous($step) {
+  $names = array_keys(setup_steps());
+  if ($step === 'done') {
+    return end($names);
+  }
+  $at = array_search($step, $names, true);
+  return ($at === false || $at === 0) ? null : $names[$at - 1];
+}
+
+// Rendered under every form. A link rather than a button, because going back submits nothing.
+function setup_back_link($step) {
+  $previous = setup_previous($step);
+  if ($previous === null) {
+    return;
+  }
+  $titles = array_column(setup_steps(), 'title', null);
+  $names = array_keys(setup_steps());
+  $title = $titles[array_search($previous, $names, true)] ?? 'Back';
+  ?>
+  <a class="secondary" href="setup.php?step=<?= h($previous) ?>">&larr; <?= h($title) ?></a>
+<?php
+}
+
 // Where somebody who just opens setup.php should land: the first thing not yet answered, or the end
 // if everything is.
 function setup_first_unanswered() {
@@ -265,12 +291,11 @@ view_masthead();
 
 <?php if ($step === 'basics'): ?>
 <?php
-  // Prefilled from how this page was actually reached, which is the answer in almost every case. It
-  // is a suggestion a person confirms rather than a value taken from the request: everywhere else,
+  // Prefilled from how this page was actually reached, directory included — served from
+  // /beeblebrox-local/setup.php the answer is https://host/beeblebrox-local, not https://host. A
+  // suggestion a person confirms rather than a value taken from the request: everywhere else,
   // site_url is read from configuration precisely so a forged Host header cannot decide it.
-  $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-  $guess = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
-  $suggested = secrets_available() ? rtrim(bbl_config()['site_url'], '/') : $guess;
+  $suggested = secrets_available() ? rtrim(bbl_config()['site_url'], '/') : bbl_guess_site_url();
 ?>
   <div class="card">
     <p class="lede" style="margin-top:0">Where this is, and a key to lock its secrets with.</p>
@@ -283,7 +308,10 @@ view_masthead();
           cosmetic: the sign-in cookie takes its <code>Secure</code> flag from this rather than from
           the request, so a forged <code>Host</code> header cannot turn it off.</small>
       </label>
-      <button type="submit">Save this and carry on</button>
+      <div class="actions">
+        <button type="submit">Save this and carry on</button>
+<?php setup_back_link("basics"); ?>
+      </div>
     </form>
   </div>
   <div class="card">
@@ -322,7 +350,10 @@ view_masthead();
         <small>What appears at the top of every page here, so you can tell one worker from another
           at a glance. It links back to the instance.</small>
       </label>
-      <button type="submit">Continue</button>
+      <div class="actions">
+        <button type="submit">Continue</button>
+<?php setup_back_link("company"); ?>
+      </div>
     </form>
   </div>
   <p class="small muted">Everything an envelope points at is checked against this address before it is
@@ -355,7 +386,10 @@ view_masthead();
                  ? 'stored — leave empty to keep it' : 'paste it here' ?>">
         <small>Stored encrypted, and never shown again from this side either.</small>
       </label>
-      <button type="submit">Check it and continue</button>
+      <div class="actions">
+        <button type="submit">Check it and continue</button>
+<?php setup_back_link("key"); ?>
+      </div>
     </form>
   </div>
 
@@ -387,7 +421,10 @@ view_masthead();
           match every envelope is refused — deliberately, because an envelope eventually starts a
           program on this machine.</small>
       </label>
-      <button type="submit">Continue</button>
+      <div class="actions">
+        <button type="submit">Continue</button>
+<?php setup_back_link("work"); ?>
+      </div>
     </form>
   </div>
 
@@ -412,7 +449,10 @@ view_masthead();
         <input type="text" name="default_model" value="<?= h(setting('default_model')) ?>">
         <small>Used when neither the project nor the role on the instance names one.</small>
       </label>
-      <button type="submit">Check it and finish</button>
+      <div class="actions">
+        <button type="submit">Check it and finish</button>
+<?php setup_back_link("agent"); ?>
+      </div>
     </form>
   </div>
   <div class="card">
@@ -444,6 +484,7 @@ view_masthead();
       <a class="secondary" href="diagnostics.php">Check everything</a>
       <a class="secondary" href="index.php">Dashboard</a>
       <a class="secondary" href="settings.php">All settings</a>
+<?php setup_back_link('done'); ?>
     </div>
   </div>
 <?php endif; ?>

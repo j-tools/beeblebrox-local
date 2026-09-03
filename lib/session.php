@@ -57,10 +57,12 @@ function bbl_session_start() {
   }
   $cfg = bbl_config();
 
-  // Secure is decided from the configured site URL, never from $_SERVER['HTTPS']. Behind a tunnel
-  // that terminates TLS elsewhere, that test is false on exactly the setup that needs the flag.
+  // Both the flag and the path come from the configured site URL, never from the request. Behind a
+  // tunnel that terminates TLS elsewhere, $_SERVER['HTTPS'] is false on exactly the setup that needs
+  // Secure — and the path is what keeps an install in a subdirectory from handing its session to
+  // everything else on the same host.
   $cookie = [
-    'path'     => '/',
+    'path'     => bbl_cookie_path(),
     'secure'   => str_starts_with($cfg['site_url'], 'https://'),
     'httponly' => true,
     'samesite' => 'Lax',
@@ -150,7 +152,7 @@ function bbl_pre_auth_start() {
     $token = bin2hex(random_bytes(32));
     setcookie('bbl_form', $token, [
       'expires'  => time() + 3600,
-      'path'     => '/',
+      'path'     => bbl_cookie_path(),
       'secure'   => str_starts_with(bbl_config()['site_url'], 'https://'),
       'httponly' => true,
       'samesite' => 'Lax',

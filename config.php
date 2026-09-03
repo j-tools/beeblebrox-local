@@ -48,6 +48,46 @@ function bbl_local_config_path() {
   return __DIR__ . '/config.local.php';
 }
 
+// The address this page was actually reached on, for setup to offer as a suggestion.
+//
+// Includes the directory, which is the part that is easy to forget: served from
+// /beeblebrox-local/setup.php, the answer is https://host/beeblebrox-local and not https://host. A
+// site_url missing that path would put the wrong URL in front of every dispatcher and scope the
+// sign-in cookie to the whole host rather than to this application.
+//
+// Only ever a suggestion a person confirms. Everywhere the site_url is used for a decision it comes
+// from configuration, precisely so a forged Host header cannot make it.
+function bbl_guess_site_url() {
+  // X-Forwarded-Proto matters here rather than being sloppy: a worker reached through a tunnel gets
+  // plain HTTP at the door, and suggesting http:// to somebody who then accepts it would silently
+  // drop the Secure flag from their session cookie.
+  $forwarded = strtolower(trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+  if ($forwarded === 'https' || $forwarded === 'http') {
+    $scheme = $forwarded;
+  } else {
+    $scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+  }
+
+  $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+  // dirname of the running script: '/beeblebrox-local' in a subdirectory, '/' or '\' at the root.
+  // Backslashes because dirname uses the platform separator, and this runs on Windows more often
+  // than not.
+  $dir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
+
+  return $scheme . '://' . $host . $dir;
+}
+
+// What the sign-in cookie is scoped to, taken from the configured address rather than the request.
+//
+// A subdirectory install that scoped its cookie to '/' would hand it to everything else on the same
+// host — and two of these on one host would sign each other out, since they would collide on both
+// name and path.
+function bbl_cookie_path() {
+  $path = parse_url(bbl_config()['site_url'], PHP_URL_PATH);
+  return ($path === null || $path === '' || $path === '/') ? '/' : '/' . trim($path, '/') . '/';
+}
+
 // A key nobody has to think of. Thirty-two random bytes as hex is not a decision, and asking a person
 // to produce one by hand was asking them to open a PHP file to paste a string a computer is better at
 // choosing.
