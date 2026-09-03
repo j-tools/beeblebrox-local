@@ -44,6 +44,64 @@ function bbl_config() {
   return $cfg;
 }
 
+function bbl_local_config_path() {
+  return __DIR__ . '/config.local.php';
+}
+
+// A key nobody has to think of. Thirty-two random bytes as hex is not a decision, and asking a person
+// to produce one by hand was asking them to open a PHP file to paste a string a computer is better at
+// choosing.
+function bbl_generate_secret_key() {
+  return bin2hex(random_bytes(32));
+}
+
+// Writes config.local.php, merging over whatever is already in it.
+//
+// A PHP file rather than a plain one, and that is the whole reason it is shaped like this: a web
+// server that has stopped running PHP serves a .key or a .env as text, while this outputs nothing at
+// all. The file sits in the directory being served, so that difference is the one protecting the key
+// that decrypts everything in the database.
+//
+// Returns true when it was written. False means the directory is not writable, which is a legitimate
+// state — the caller then shows the content to paste, which is still better than asking somebody to
+// invent the key themselves.
+function bbl_write_local_config(array $values) {
+  $written = @file_put_contents(bbl_local_config_path(), bbl_local_config_text($values), LOCK_EX);
+  if ($written === false) {
+    return false;
+  }
+  // It holds the key that decrypts every stored secret, so it is not world-readable where that means
+  // anything. Windows ignores this, which is why it is not the only protection.
+  @chmod(bbl_local_config_path(), 0600);
+  return true;
+}
+
+// The file's whole content, merged over whatever is already in it. Shared with the page that shows it
+// to be pasted by hand, so what somebody copies is exactly what would have been written.
+function bbl_local_config_text(array $values) {
+  $path = bbl_local_config_path();
+  $existing = file_exists($path) ? (array)(require $path) : [];
+  $merged = array_merge($existing, $values);
+
+  $lines = [
+    '<?php',
+    '// Written by the setup page. Safe to edit by hand afterwards — nothing rewrites it unless you',
+    '// go through setup again, and then only the values it asks about.',
+    '//',
+    '// This is a PHP file rather than a plain one on purpose: it lives in the directory being served,',
+    '// and a server that has stopped running PHP would hand over a .key or a .env as text while this',
+    '// outputs nothing. See config.local.example.php for what each value does.',
+    '',
+    'return [',
+  ];
+  foreach ($merged as $key => $value) {
+    // var_export, so a value containing a quote is a value rather than a syntax error.
+    $lines[] = sprintf('  %-13s => %s,', var_export((string)$key, true), var_export($value, true));
+  }
+  $lines[] = '];';
+  return implode("\n", $lines) . "\n";
+}
+
 // The public Beeblebrox site. Anything explaining Beeblebrox itself lives there, as opposed to an
 // instance, which belongs to one company. Not configurable — it is the same site for every customer,
 // and a setting nobody would ever change is a setting somebody can get wrong.

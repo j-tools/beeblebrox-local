@@ -61,9 +61,10 @@ function checks_run($deep = true) {
 
   $out[] = secrets_available()
     ? check('pass', 'SECRET_KEY is set')
-    : check('fail', 'SECRET_KEY is not set',
-        'Neither the API key nor the webhook secret can be stored without it. Generate one with ' .
-        'php -r "echo bin2hex(random_bytes(32));" and put it in config.local.php.');
+    : check('fail', 'No key to encrypt stored secrets with',
+        'Neither the API key nor the webhook secret can be stored without one. Setup generates it ' .
+        'and writes config.local.php for you — there is nothing to invent.',
+        'setup.php');
 
   $out[] = setting('admin_password_hash') !== ''
     ? check('pass', 'These pages have a password')

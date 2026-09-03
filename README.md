@@ -65,16 +65,16 @@ task that makes any of it happen on its own.
 The short version:
 
 ```bash
-cp config.local.example.php config.local.php   # set site_url and a secret_key
+unzip beeblebrox-local.zip -d /path/your/web/server/serves
 ```
 
 The database is one SQLite file that writes itself the first time you open a page. There is nothing
 to create and nothing to import — but it holds session ids and your password hash, so read
 `INSTALL.md` section 3 about not serving it.
 
-Then open the site and set a password. That drops you into a four-question setup — which Beeblebrox
-this machine works for, a key to talk to it with, how work arrives, and what runs it — each answer
-checked against the instance before it moves on.
+Then open the site and set a password. Setup confirms the address and writes `config.local.php` — key
+included — then asks four things: which Beeblebrox this machine works for, a key to talk to it with,
+how work arrives, and what runs it. Each answer is checked against the instance before it moves on.
 
 ## Layout
 

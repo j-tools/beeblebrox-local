@@ -18,25 +18,31 @@ cd beeblebrox-local
 If you work both a beta and a production instance, clone it twice — one on `main`, one on `beta` —
 and give each its own vhost and its own `config.local.php`. They share nothing, which is the point.
 
-## 2. Configure it
+## 2. Nothing to configure by hand
 
-```bash
-cp config.local.example.php config.local.php
-php -r "echo bin2hex(random_bytes(32));"
-```
+Skip this and go to section 3 — it is here to say why there is no step.
 
-Put that string in as `secret_key`. It wraps the API key and the signing secret inside the database,
-so a copy of the database file on its own is not a credential breach — and losing it means entering
-both again.
+**The database creates itself.** One SQLite file, written the first time anything opens a page, with
+every migration already folded in. Later versions arrive as files in `db/migrations/` and are applied
+with `php tools/migrate.php`.
 
-Set `site_url` to the address you will serve this on. It is not cosmetic: the sign-in cookie takes
-its `Secure` flag from it rather than from the request, so a forged `Host` header cannot turn it off.
+**`config.local.php` writes itself too.** The first thing the setup page asks is the address you
+reach it on — prefilled from how you got there — and it generates the key that encrypts stored
+secrets, because 32 random bytes is not a decision anybody needs to make. If the directory is not
+writable by the web server it shows you the finished file to save yourself, key and all.
 
-`config.local.php` is gitignored. Nothing else in the repository holds a secret.
+That file is gitignored, and it is a `.php` rather than a `.key` on purpose: it sits in the directory
+being served, and a server that has stopped running PHP would hand over a plain file as text while
+this one outputs nothing.
 
-**There is no database to create.** The store is one SQLite file, written the first time anything
-opens a page, with every migration already folded in. Later versions arrive as files in
-`db/migrations/` and are applied with `php tools/migrate.php`.
+The two values it does not ask about, because they have working defaults:
+
+| | |
+|---|---|
+| `db_file` | where the database goes. Default `data/local.sqlite` — see section 3 |
+| `job_root` | per-job working files: the prompt, the raw output, the result. Default `jobs/`. Worth moving off a synced drive, since an agent run writes to it continuously |
+
+`config.local.example.php` documents both if you would rather set them before you start.
 
 ## 3. Stop the world reading the database
 
@@ -105,11 +111,12 @@ one above.
 Restart Apache, open `http://local.beeblebrox.cloud`, and set a password. That password is the only
 thing between this machine's API key and anybody else who can reach the address.
 
-Setting it drops you straight into a four-question setup: which Beeblebrox this machine works for, a
-key to talk to it with, how work should arrive, and what runs it. Each answer is checked before it
-moves on, so a wrong instance name or a refused key is caught while you are still looking at it. The
-next three sections are the same four questions in longer form — read them if a choice is not
-obvious, skip them if it is.
+Setting it drops you straight into setup. It confirms the address you reached it on and writes
+`config.local.php` for you, then asks four things: which Beeblebrox this machine works for, a key to
+talk to it with, how work should arrive, and what runs it. Each answer is checked before it moves on,
+so a wrong instance name or a refused key is caught while you are still looking at it. The next three
+sections are those four questions in longer form — read them if a choice is not obvious, skip them if
+it is.
 
 For a quick look without Apache, `php -S 127.0.0.1:8774 -t .` serves it just as well.
 

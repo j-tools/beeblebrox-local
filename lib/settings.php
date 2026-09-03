@@ -221,7 +221,8 @@ function url_is_upstream($url) {
 function settings_gaps() {
   $gaps = [];
   if (!secrets_available()) {
-    $gaps[] = 'SECRET_KEY is not set in config.local.php, so no secret can be stored yet.';
+    $gaps[] = 'No key to encrypt stored secrets with, so the API key cannot be saved yet. Setup ' .
+      'generates one — it is the first thing it does.';
   }
   if (instance_base() === '') {
     $gaps[] = 'No instance URL. Nothing knows which Beeblebrox this machine works for.';

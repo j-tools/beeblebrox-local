@@ -29,6 +29,10 @@ bbl_require_signin();
 function setup_steps() {
   $answered = setup_answered();
   return [
+    // Judged by the key existing rather than by having been answered, unlike the rest. There is
+    // nothing to answer — a machine chose the key — so the only question is whether it is there, and
+    // somebody who set one by hand should not be asked to walk a step that is already true.
+    'basics'  => ['title' => 'This machine',     'done' => secrets_available()],
     'company' => ['title' => 'Your Beeblebrox',  'done' => in_array('company', $answered, true)],
     'key'     => ['title' => 'Your key',         'done' => in_array('key', $answered, true)],
     'work'    => ['title' => 'How work arrives', 'done' => in_array('work', $answered, true)],
@@ -81,6 +85,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   bbl_check_csrf();
   $step = $_POST['step'] ?? $step;
   try {
+    if ($step === 'basics') {
+      $site_url = rtrim(trim((string)($_POST['site_url'] ?? '')), '/');
+      if (!preg_match('#^https?://[^\s/]+#i', $site_url)) {
+        throw new RuntimeException('That does not look like an address. It should start with ' .
+          'http:// or https:// and be how you actually reach these pages.');
+      }
+
+      // Generated once and kept. Regenerating it on a later pass through setup would make every
+      // secret already stored undecryptable, which is a bad way to find out you clicked twice.
+      $values = ['site_url' => $site_url];
+      if (!secrets_available()) {
+        $values['secret_key'] = bbl_generate_secret_key();
+      }
+
+      if (!bbl_write_local_config($values)) {
+        // Not an error to hide behind a retry: the directory is not writable and no amount of
+        // clicking changes that. Showing the file with the key already in it is the whole of the
+        // remaining work.
+        $_SESSION["setup_config_text"] = bbl_local_config_text($values);
+        throw new RuntimeException('Could not write ' . bbl_local_config_path() . ' — the directory ' .
+          'is not writable by the web server. The file it was going to write is below; save it ' .
+          'yourself and this step is done.');
+      }
+      unset($_SESSION['setup_config_text']);
+
+      header('Location: setup.php?step=company');
+      exit;
+    }
+
     if ($step === 'company') {
       $url = instance_normalize($_POST['instance'] ?? '');
       if ($url === '') {
@@ -230,7 +263,47 @@ view_masthead();
     <?= h($warning) ?></p></div>
 <?php endif; ?>
 
-<?php if ($step === 'company'): ?>
+<?php if ($step === 'basics'): ?>
+<?php
+  // Prefilled from how this page was actually reached, which is the answer in almost every case. It
+  // is a suggestion a person confirms rather than a value taken from the request: everywhere else,
+  // site_url is read from configuration precisely so a forged Host header cannot decide it.
+  $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+  $guess = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+  $suggested = secrets_available() ? rtrim(bbl_config()['site_url'], '/') : $guess;
+?>
+  <div class="card">
+    <p class="lede" style="margin-top:0">Where this is, and a key to lock its secrets with.</p>
+    <form method="post" class="stack">
+      <?= bbl_csrf_field() ?>
+      <input type="hidden" name="step" value="basics">
+      <label>The address you open this on
+        <input type="text" name="site_url" autofocus required value="<?= h($suggested) ?>">
+        <small>Filled in from how you reached this page, which is almost always right. It is not
+          cosmetic: the sign-in cookie takes its <code>Secure</code> flag from this rather than from
+          the request, so a forged <code>Host</code> header cannot turn it off.</small>
+      </label>
+      <button type="submit">Save this and carry on</button>
+    </form>
+  </div>
+  <div class="card">
+    <p class="small" style="margin:0"><strong>A key is generated for you.</strong> It encrypts the
+       API key and the webhook signing secret inside the database, so a copy of the database file on
+       its own is worth nothing. Both are written to <code>config.local.php</code>, which is a PHP
+       file rather than a plain one on purpose — it sits in the directory being served, and a server
+       that has stopped running PHP would hand over a <code>.key</code> as text while this outputs
+       nothing.</p>
+  </div>
+<?php if (!empty($_SESSION['setup_config_text'])): ?>
+  <div class="card">
+    <h3 style="margin-top:0">Save this as <code><?= h(bbl_local_config_path()) ?></code></h3>
+    <p class="small">The key in it was generated just now and is not stored anywhere else yet, so use
+       this one rather than making another.</p>
+    <pre class="output"><?= h($_SESSION['setup_config_text']) ?></pre>
+  </div>
+<?php endif; ?>
+
+<?php elseif ($step === 'company'): ?>
   <div class="card">
     <p class="lede" style="margin-top:0">Which Beeblebrox does this machine work for?</p>
     <form method="post" class="stack">

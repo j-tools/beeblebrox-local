@@ -24,8 +24,8 @@ function secrets_key() {
   $configured = (string)(bbl_config()['secret_key'] ?? '');
   if ($configured === '') {
     throw new RuntimeException(
-      'SECRET_KEY is not set for this instance, so secrets cannot be stored. Generate 32 random bytes ' .
-      'as hex and set it in the environment.');
+      'There is no key to encrypt stored secrets with, so nothing secret can be saved. Setup ' .
+      'generates one and writes it to config.local.php — open setup.php and it is the first step.');
   }
   $key = (strlen($configured) === 64 && ctype_xdigit($configured))
     ? hex2bin($configured)
