@@ -29,24 +29,34 @@ function checks_run($deep = true) {
   $out[] = file_exists(__DIR__ . '/../config.local.php')
     ? check('pass', 'config.local.php is present')
     : check('warn', 'config.local.php is missing',
-        'Fine if DB_HOST and the rest are set as environment variables; otherwise copy ' .
+        'Fine if SITE_URL and SECRET_KEY are set as environment variables; otherwise copy ' .
         'config.local.example.php and fill it in.');
 
   try {
     db();
-    $out[] = check('pass', 'Database reachable', $cfg['db_name'] . ' on ' . $cfg['db_host']);
-    $tables = db_count("SELECT COUNT(*) FROM information_schema.tables
-                         WHERE table_schema = ? AND table_name IN
-                         ('settings','jobs','job_events','projects','webhook_log','sessions')",
-      [$cfg['db_name']]);
-    $out[] = $tables === 6
-      ? check('pass', 'Schema is loaded')
-      : check('fail', 'Schema is incomplete',
-          "{$tables} of 6 tables found. Load db/schema.sql, then run tools/migrate.php.");
+    $missing = [];
+    foreach (['settings', 'jobs', 'job_events', 'projects', 'webhook_log', 'sessions'] as $table) {
+      if (!db_table_exists($table)) {
+        $missing[] = $table;
+      }
+    }
+    $out[] = $missing === []
+      ? check('pass', 'Database is there', $cfg['db_file'])
+      : check('fail', 'The database is incomplete',
+          'Missing: ' . implode(', ', $missing) . '. It creates itself on first use, so this ' .
+          'usually means a half-written file — delete it and reload any page.');
   } catch (Throwable $e) {
-    $out[] = check('fail', 'Database unreachable', $e->getMessage());
+    $out[] = check('fail', 'Cannot open the database', $e->getMessage());
     // Nothing below this reads without a database, so there is no point asking.
     return $out;
+  }
+
+  // The file holds session ids and the password hash for these pages, so serving it hands whoever
+  // downloads it a way in. Asked over the web from outside rather than reasoned about, because the
+  // shipped .htaccess only works on Apache and only where AllowOverride permits — and "I assumed it
+  // was denied" is exactly how this goes wrong.
+  if ($deep) {
+    $out[] = check_db_is_not_downloadable($cfg);
   }
 
   $out[] = secrets_available()
@@ -163,7 +173,7 @@ function checks_run($deep = true) {
     $out[] = check('warn', 'The runner has never run',
       'Nothing happens on its own until tools/run.php is on a schedule. See INSTALL.md.');
   } else {
-    $minutes = (int)db_one('SELECT TIMESTAMPDIFF(MINUTE, ?, NOW()) AS m', [$last])['m'];
+    $minutes = intdiv(max(0, time() - strtotime($last)), 60);
     $out[] = $minutes <= 10
       ? check('pass', 'The runner is running', 'last pass ' . view_ago_safe($last))
       : check('warn', 'The runner has not run recently',
@@ -231,11 +241,55 @@ function checks_run($deep = true) {
 
 // view_ago() lives in the view layer, which the CLI does not load. Same answer, no dependency.
 function view_ago_safe($datetime) {
-  $mins = (int)db_one('SELECT TIMESTAMPDIFF(MINUTE, ?, NOW()) AS m', [$datetime])['m'];
+  $mins = intdiv(max(0, time() - strtotime($datetime)), 60);
   if ($mins < 1)    { return 'just now'; }
   if ($mins < 60)   { return $mins . 'm ago'; }
   if ($mins < 1440) { return intdiv($mins, 60) . 'h ago'; }
   return intdiv($mins, 1440) . 'd ago';
+}
+
+// Fetches the database file the way a stranger would. A 200 with SQLite's header at the front is the
+// only answer that proves it is exposed; anything else — a 403, a 404, a redirect, no answer at all
+// — means it is not reachable at that address, which is what was being asked.
+//
+// Only meaningful when the file is inside the served directory. Moved out of it, there is no URL to
+// try and nothing to check.
+function check_db_is_not_downloadable(array $cfg) {
+  $root = realpath(__DIR__ . '/..');
+  $file = realpath($cfg['db_file']);
+  if ($file === false || $root === false || strncmp($file, $root, strlen($root)) !== 0) {
+    return check('pass', 'The database is outside the served directory',
+      'There is no URL that could reach it, which is the answer no later config change can undo.');
+  }
+
+  $relative = str_replace('\\', '/', substr($file, strlen($root) + 1));
+  $url = rtrim($cfg['site_url'], '/') . '/' . $relative;
+
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT        => 10,
+    CURLOPT_CONNECTTIMEOUT => 5,
+    CURLOPT_FOLLOWLOCATION => false,
+    // 512 bytes is plenty: SQLite writes its magic string into the first 16.
+    CURLOPT_RANGE          => '0-511',
+  ]);
+  $body = (string)curl_exec($ch);
+  $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  $error = curl_error($ch);
+  curl_close($ch);
+
+  if ($error !== '') {
+    return check('warn', 'Could not check whether the database is downloadable',
+      "Asking {$url} from here failed: {$error}. Worth confirming by hand — if that URL returns the " .
+      'file, anybody who finds it has a signed-in session on this machine.');
+  }
+  if ($status >= 200 && $status < 300 && strncmp($body, 'SQLite format 3', 15) === 0) {
+    return check('fail', 'The database can be downloaded',
+      "{$url} returns the file. It holds session ids and the password hash for these pages. Deny " .
+      'that path in your web server, or move the file out of the served directory with db_file.');
+  }
+  return check('pass', 'The database cannot be downloaded', "{$url} answers {$status}.");
 }
 
 function checks_worst(array $checks) {

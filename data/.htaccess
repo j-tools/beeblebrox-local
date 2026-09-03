@@ -1,0 +1,18 @@
+# The database file lives here. It holds session ids and the password hash for these pages, so
+# serving it hands whoever downloads it a way in.
+#
+# This only works on Apache, and only where AllowOverride permits it. nginx does not read this file
+# and neither does PHP's built-in server — on those, deny the path in the server config, or set
+# db_file in config.local.php to somewhere outside the served directory, which is the answer a later
+# config change cannot quietly undo.
+#
+# Do not take any of this on trust: the diagnostics page fetches the file over the web from outside
+# and fails if it comes back.
+
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

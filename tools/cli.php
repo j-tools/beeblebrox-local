@@ -12,13 +12,9 @@ function tools_require_cli() {
 // Says which migration is missing rather than letting the first query that needs the table throw a
 // stack trace at somebody who then has to work out which table it meant.
 function tools_require_table($table, $migration) {
-  $exists = db_count(
-    'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?',
-    [bbl_config()['db_name'], $table]
-  );
-  if ($exists === 0) {
-    fwrite(STDERR, "The '{$table}' table does not exist yet. Load db/schema.sql, or apply " .
-      "db/migrations/{$migration}, then run this again.\n");
+  if (!db_table_exists($table)) {
+    fwrite(STDERR, "The '{$table}' table does not exist yet. It should have been created on first " .
+      "use — try opening a page, or apply db/migrations/{$migration}, then run this again.\n");
     exit(1);
   }
 }

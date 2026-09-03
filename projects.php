@@ -41,8 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       db_exec(
         'INSERT INTO projects (upstream_project_id, name, workspace_path, prepare_command, model, is_active)
            VALUES (?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE name = VALUES(name), workspace_path = VALUES(workspace_path),
-           prepare_command = VALUES(prepare_command), model = VALUES(model), is_active = VALUES(is_active)',
+         ON CONFLICT(upstream_project_id) DO UPDATE SET
+           name = excluded.name, workspace_path = excluded.workspace_path,
+           prepare_command = excluded.prepare_command, model = excluded.model,
+           is_active = excluded.is_active',
         [$upstream, $name, str_replace('\\', '/', $path),
          trim((string)($_POST['prepare_command'] ?? '')) ?: null,
          trim((string)($_POST['model'] ?? '')) ?: null,

@@ -96,7 +96,7 @@ register_shutdown_function(function () use ($saved_secret, $saved_accept, $saved
   db_exec('DELETE FROM jobs WHERE upstream_task_id >= 900000000');
   db_exec("DELETE FROM webhook_log WHERE body LIKE '%900000%'");
   db_exec('INSERT INTO settings (name, value, is_secret) VALUES (?, ?, 1)
-             ON DUPLICATE KEY UPDATE value = VALUES(value)',
+             ON CONFLICT(name) DO UPDATE SET value = excluded.value',
     ['webhook_secret', $saved_secret === null ? '' : $saved_secret['value']]);
   setting_set('accept_webhooks', $saved_accept);
   setting_set('allowed_ips', $saved_ips);

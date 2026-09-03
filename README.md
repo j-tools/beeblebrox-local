@@ -6,8 +6,8 @@ The instance runs the pipeline — tickets, roles, flows, who does what next. Th
 your own checkouts, with your own agent, under your own keys. The only thing that leaves the machine
 is the result.
 
-It is one small PHP application with no build step and no dependencies beyond PHP and MySQL. It is
-meant to be handed to a customer as it is.
+It is one small PHP application with no build step, no database server and no dependencies beyond
+PHP itself. It is meant to be handed to a customer as it is.
 
 ## What it does
 
@@ -59,15 +59,18 @@ separately with this machine's own API key, which keeps it out of transit and ou
 
 ## Getting started
 
-`INSTALL.md`, which covers the vhost, the database, the API key, the dispatcher and the scheduled
+`INSTALL.md`, which covers the vhost, the API key, the dispatcher and the scheduled
 task that makes any of it happen on its own.
 
 The short version:
 
 ```bash
-cp config.local.example.php config.local.php   # fill in the database and a SECRET_KEY
-mysql -u <user> -p <database> < db/schema.sql
+cp config.local.example.php config.local.php   # set site_url and a secret_key
 ```
+
+The database is one SQLite file that writes itself the first time you open a page. There is nothing
+to create and nothing to import — but it holds session ids and your password hash, so read
+`INSTALL.md` section 3 about not serving it.
 
 Then open the site and set a password. That drops you into a four-question setup — which Beeblebrox
 this machine works for, a key to talk to it with, how work arrives, and what runs it — each answer
@@ -94,7 +97,7 @@ checked against the instance before it moves on.
 
 `main` and `beta`, matching the instance each talks to. There is no deployment: a checkout on a
 machine is the install. Run two if you work both a beta and a production instance — each with its own
-database, its own vhost and its own `config.local.php`.
+vhost and its own `config.local.php`, which is enough to give each its own database file.
 
 ## Tests
 

@@ -4,7 +4,7 @@ Everything here is done once, on the machine that will do the work. It takes abo
 and the diagnostics page tells you which parts you have not done yet at every point along the way.
 
 Written for XAMPP on Windows, because that is what it was built on. Anything that serves PHP 8.1+
-with a MySQL or MariaDB to talk to will do — Apache, nginx, or `php -S` for a look around.
+will do — Apache, nginx, or `php -S` for a look around. There is no database server to install.
 
 ---
 
@@ -16,39 +16,49 @@ cd beeblebrox-local
 ```
 
 If you work both a beta and a production instance, clone it twice — one on `main`, one on `beta` —
-and give each its own database and its own vhost. They share nothing, which is the point.
+and give each its own vhost and its own `config.local.php`. They share nothing, which is the point.
 
-## 2. Make a database
-
-```sql
-CREATE DATABASE beeblebrox_local_zaphod CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'id_beeblebrox_local_zaphod'@'%' IDENTIFIED BY '<a long random password>';
-GRANT ALL ON beeblebrox_local_zaphod.* TO 'id_beeblebrox_local_zaphod'@'%';
-```
-
-Then load the schema:
-
-```bash
-mysql -h 127.0.0.1 -u id_beeblebrox_local_zaphod -p beeblebrox_local_zaphod < db/schema.sql
-```
-
-`db/schema.sql` is the whole thing with every migration folded in, so a fresh install loads it alone.
-Later changes arrive as files in `db/migrations/` and are applied with `php tools/migrate.php`.
-
-## 3. Configure it
+## 2. Configure it
 
 ```bash
 cp config.local.example.php config.local.php
 php -r "echo bin2hex(random_bytes(32));"
 ```
 
-Put that string in as `secret_key`. It wraps the API key and the signing secret in the database, so a
-database dump on its own is not a credential breach — and losing it means entering both again.
+Put that string in as `secret_key`. It wraps the API key and the signing secret inside the database,
+so a copy of the database file on its own is not a credential breach — and losing it means entering
+both again.
 
-Set `site_url` to the address you will serve this on, and `job_root` to somewhere writable and, if
-you can, off a synced drive: an agent run writes to it continuously.
+Set `site_url` to the address you will serve this on. It is not cosmetic: the sign-in cookie takes
+its `Secure` flag from it rather than from the request, so a forged `Host` header cannot turn it off.
 
 `config.local.php` is gitignored. Nothing else in the repository holds a secret.
+
+**There is no database to create.** The store is one SQLite file, written the first time anything
+opens a page, with every migration already folded in. Later versions arrive as files in
+`db/migrations/` and are applied with `php tools/migrate.php`.
+
+## 3. Stop the world reading the database
+
+By default the file is `data/local.sqlite`, inside the directory being served. It holds session ids
+and the password hash for these pages, so **serving it hands whoever downloads it a way in**.
+
+The shipped `data/.htaccess` denies it on Apache, and only where `AllowOverride` permits. Nothing
+else honors that file — nginx does not, and neither does PHP's built-in server. So on nginx:
+
+```
+location ~ ^/(data|lib|db|tools|tests)/ { deny all; }
+```
+
+Or sidestep the question entirely by putting the file outside the directory being served, which is
+the one answer a later config change cannot quietly undo:
+
+```php
+'db_file' => 'C:/beeblebrox-local/local.sqlite',
+```
+
+Do not take any of this on trust. The diagnostics page fetches the file over the web from outside and
+**fails** if it comes back, naming the URL it got it from.
 
 ## 4. Serve it
 

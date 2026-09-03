@@ -62,10 +62,10 @@ function job_accept(array $fields) {
               error = NULL, exit_code = NULL, duration_ms = NULL,
               input_tokens = NULL, output_tokens = NULL, cost_microdollars = NULL,
               report_attempts = 0, report_next_at = NULL,
-              received_at = NOW(), claimed_at = NULL, started_at = NULL, finished_at = NULL
+              received_at = ?, claimed_at = NULL, started_at = NULL, finished_at = NULL
         WHERE id = ?",
       [$attempt, $fields['source'],
-       $fields['envelope'] ?? null, empty($fields['is_test']) ? 0 : 1, (int)$existing['id']]
+       $fields['envelope'] ?? null, empty($fields['is_test']) ? 0 : 1, db_now(), (int)$existing['id']]
     );
     job_log((int)$existing['id'], "Attempt {$attempt} of the same task. Queued again from " .
       $fields['source'] . '; what the last attempt produced is on the instance, not here.');
@@ -165,10 +165,9 @@ function jobs_stuck() {
   $limit = max(60, setting_int('agent_timeout_seconds', 3600)) + 300;
   return db_all(
     "SELECT * FROM jobs
-      WHERE status = 'running' AND started_at IS NOT NULL
-        AND started_at < DATE_SUB(NOW(), INTERVAL ? SECOND)
+      WHERE status = 'running' AND started_at IS NOT NULL AND started_at < ?
       ORDER BY id",
-    [$limit]
+    [db_now(-$limit)]
   );
 }
 
@@ -179,8 +178,9 @@ function jobs_awaiting_report() {
   return db_all(
     "SELECT * FROM jobs
       WHERE status = 'reporting'
-        AND (report_next_at IS NULL OR report_next_at <= NOW())
-      ORDER BY id"
+        AND (report_next_at IS NULL OR report_next_at <= ?)
+      ORDER BY id",
+    [db_now()]
   );
 }
 

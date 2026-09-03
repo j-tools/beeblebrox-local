@@ -4,3 +4,7 @@ logs/
 *.lock
 .DS_Store
 Thumbs.db
+
+# The database file and its WAL companions. The .htaccess that denies them must still ship.
+data/*
+!data/.htaccess

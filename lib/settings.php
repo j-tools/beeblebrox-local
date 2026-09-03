@@ -135,9 +135,10 @@ function setting_set($name, $value) {
     $value = secrets_encrypt($value);
   }
   db_exec(
-    'INSERT INTO settings (name, value, is_secret) VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE value = VALUES(value), is_secret = VALUES(is_secret)',
-    [$name, (string)$value, $is_secret ? 1 : 0]
+    'INSERT INTO settings (name, value, is_secret, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(name) DO UPDATE SET value = excluded.value, is_secret = excluded.is_secret,
+                                     updated_at = excluded.updated_at',
+    [$name, (string)$value, $is_secret ? 1 : 0, db_now()]
   );
   settings_raw(true);
 }

@@ -44,13 +44,14 @@ function view_home_url() {
   return view_company() === '' ? bbl_public_site() : instance_base();
 }
 
-// Compared against the database clock rather than PHP's. The two are not reliably in step on a
-// machine that has been asleep, and a PHP-computed difference can be hours out.
+// Computed in PHP, which is the same clock that wrote the value: every timestamp here is either
+// PHP's date() or a column default of datetime('now','localtime') on a database file sitting on this
+// same machine. There is no second clock left to disagree with.
 function view_ago($datetime) {
   if (!$datetime) {
     return '';
   }
-  $mins = (int)db_one('SELECT TIMESTAMPDIFF(MINUTE, ?, NOW()) AS m', [$datetime])['m'];
+  $mins = intdiv(max(0, time() - strtotime($datetime)), 60);
   if ($mins < 1)    { return 'just now'; }
   if ($mins < 60)   { return $mins . 'm ago'; }
   if ($mins < 1440) { return intdiv($mins, 60) . 'h ago'; }

@@ -22,11 +22,10 @@ function bbl_config() {
   };
 
   $cfg = [
-    'db_host'     => $env('DB_HOST',     $local['db_host']     ?? '127.0.0.1'),
-    'db_port'     => (int)$env('DB_PORT', $local['db_port']    ?? 3306),
-    'db_user'     => $env('DB_USER',     $local['db_user']     ?? ''),
-    'db_password' => $env('DB_PASSWORD', $local['db_password'] ?? ''),
-    'db_name'     => $env('DB_NAME',     $local['db_name']     ?? ''),
+    // One file, created on first run. Inside the directory being served by default, because that is
+    // the answer that needs no decisions — and it is why data/ ships with an .htaccess and why the
+    // diagnostics page checks, over the web, that the file cannot actually be downloaded.
+    'db_file'     => $env('DB_FILE',     $local['db_file']     ?? __DIR__ . '/data/local.sqlite'),
 
     // Where this receiver answers. Also decides the session cookie's Secure flag, so it is never
     // derived from the request — a forged Host header cannot turn it off.
@@ -67,6 +66,5 @@ function bbl_env_label() {
 }
 
 function bbl_is_configured() {
-  $cfg = bbl_config();
-  return $cfg['db_name'] !== '' && $cfg['db_user'] !== '';
+  return bbl_config()['db_file'] !== '';
 }

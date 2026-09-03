@@ -30,7 +30,8 @@ function bbl_session_store() {
       }
       db_exec(
         'INSERT INTO sessions (id, payload, last_active) VALUES (?, ?, ?)
-           ON DUPLICATE KEY UPDATE payload = VALUES(payload), last_active = VALUES(last_active)',
+           ON CONFLICT(id) DO UPDATE SET payload = excluded.payload,
+                                         last_active = excluded.last_active',
         [$id, $payload, time()]
       );
       return true;
