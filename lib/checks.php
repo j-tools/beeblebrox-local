@@ -96,7 +96,7 @@ function checks_run($deep = true) {
     $out[] = check('fail', 'No API key',
       'Issue one on the instance — sign in there as a company admin, API keys in the menu, New key, ' .
       'permission "task creator" — then paste it into the settings page here. It is shown once.',
-      instance_base() . '/keys.php');
+      instance_keys_url());
   } elseif ($deep && $reachable) {
     $who = upstream_whoami();
     if ($who['status'] === 404) {
@@ -110,11 +110,11 @@ function checks_run($deep = true) {
       $out[] = $tasks['ok']
         ? check('pass', 'API key works',
             count($tasks['json']['tasks'] ?? []) . ' open task(s) it can see')
-        : check('fail', 'API key refused', $tasks['error'], instance_base() . '/keys.php');
+        : check('fail', 'API key refused', $tasks['error'], instance_keys_url());
     } elseif (!$who['ok']) {
       $out[] = check('fail', 'API key refused', $who['error'] .
         ' — the key needs the task creator permission or better. Revoke it and issue another.',
-        instance_base() . '/keys.php');
+        instance_keys_url());
     } else {
       $worker = $who['json']['worker'] ?? null;
       $out[] = check('pass', 'API key works',
@@ -128,7 +128,7 @@ function checks_run($deep = true) {
         $out[] = check('warn', 'This key belongs to no worker',
           'It is shown every task meant for a machine, including other workers\'. Issue a key that ' .
           'belongs to this one and the instance will hand it only its own work.',
-          instance_base() . '/keys.php');
+          instance_keys_url());
       } elseif (empty($worker['is_active'])) {
         $out[] = check('warn', 'This worker is paused on the instance',
           $worker['name'] . ' is deactivated there, so nothing will be dispatched to it and polling ' .

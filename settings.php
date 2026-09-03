@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$health['ok']) {
           throw new RuntimeException('Saved, but the instance did not answer: ' . $health['error']);
         }
-        $tasks = upstream_open_tasks('any');
+        $tasks = upstream_open_tasks();
         if (!$tasks['ok']) {
           throw new RuntimeException('Saved, and the instance answered, but the key was refused: ' .
             $tasks['error'] . ' — it needs the task_creator permission or better.');
@@ -117,7 +117,7 @@ view_flash($error, $notice);
            placeholder="<?= setting_secret_is_set('api_key') ? 'stored — leave empty to keep it' : 'not set' ?>">
 <?php if (instance_base() !== ''): ?>
     <small>Issue one on the instance:
-      <a href="<?= h(instance_base()) ?>/keys.php" target="_blank" rel="noopener">
+      <a href="<?= h(instance_keys_url()) ?>" target="_blank" rel="noopener">
         <?= h(instance_base()) ?>/keys.php</a> → <strong>New key</strong>. Choose
       <strong>task creator</strong>, which is what a worker needs: read everything, claim, and report.
       It is shown once there, so copy it straight into this box.</small>

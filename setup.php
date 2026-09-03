@@ -366,7 +366,7 @@ view_masthead();
       <?= h(company_name()) ?> with.</p>
     <ol class="steps">
       <li><strong>Open your instance's key page</strong>
-        <span><a href="<?= h(instance_base()) ?>/keys.php" target="_blank" rel="noopener">
+        <span><a href="<?= h(instance_keys_url()) ?>" target="_blank" rel="noopener">
           <?= h(instance_base()) ?>/keys.php</a> — you need to be signed in there as a company
           admin.</span></li>
       <li><strong>New key</strong>

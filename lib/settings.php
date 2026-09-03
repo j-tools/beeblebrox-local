@@ -149,6 +149,13 @@ function instance_base() {
   return rtrim((string)setting('instance_url'), '/');
 }
 
+// The instance's key page, told that somebody arriving is setting a worker up. The instance leads
+// with that — and offers to make the dispatcher a worker's key has to belong to, which on a fresh
+// instance does not exist yet and is the step easiest to walk straight past.
+function instance_keys_url() {
+  return instance_base() . '/keys.php?worker=1';
+}
+
 // What the company is called, falling back to the instance's own name — which is the same word in
 // every hosted case, since an instance is <company>.beeblebrox.cloud.
 //
