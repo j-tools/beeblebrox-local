@@ -1,0 +1,63 @@
+# Packs a download on every push to main and publishes it as a release asset.
+#
+# This exists because the download kept drifting. It used to be a zip committed into the website's
+# repository, built by hand, with its size and commit typed into the page beside it — three things
+# that had to be remembered together, and twice were not. Now the push that changes the code is the
+# thing that builds the download, so the two cannot disagree.
+#
+# The website links to the asset by a URL that always resolves to the newest release:
+#
+#   https://github.com/j-tools/beeblebrox-local/releases/latest/download/beeblebrox-local.zip
+#
+# so there is nothing to update there either, and nothing to redeploy when this repository changes.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+  # So a release can be re-cut without an empty commit, which is the thing you want at exactly the
+  # moment something has gone wrong.
+  workflow_dispatch:
+
+# The default token, with the one extra thing it needs. Nothing here reads a secret.
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # git archive rather than zipping the working directory: it takes only what is committed, so
+      # nothing gitignored can be swept in, and it applies the export-subst in .gitattributes that
+      # stamps the commit into VERSION. The prefix is why this is built here rather than linking to
+      # GitHub's own archive, which unpacks to a directory named after a 40-character hash.
+      - name: Pack
+        run: |
+          git archive --format=zip --prefix=beeblebrox-local/ -o beeblebrox-local.zip HEAD
+          unzip -p beeblebrox-local.zip beeblebrox-local/VERSION
+
+      # Refused rather than published: a zip carrying a config file would be publishing whatever
+      # happened to be in it. It cannot happen — config.local.php is gitignored and git archive only
+      # takes what is committed — which is exactly why it is worth one line to be sure.
+      - name: Refuse to publish a config
+        run: |
+          if unzip -l beeblebrox-local.zip | grep -q 'config\.local\.php'; then
+            echo "config.local.php is in the archive; not publishing." >&2
+            exit 1
+          fi
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          gh release create "build-$SHA" beeblebrox-local.zip \
+            --title "beeblebrox-local $SHA" \
+            --notes "$(git log -1 --pretty=%s)
+
+          Unpacks to \`beeblebrox-local/\`. The copy you unpack carries this commit in its \`VERSION\` file.
+
+          Installing it: <https://beeblebrox.cloud/local/>"
