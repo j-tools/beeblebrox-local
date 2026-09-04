@@ -195,8 +195,66 @@ function view_header($title, $signed_in = false) {
 <?php
 }
 
+// A value that exists to be copied somewhere else: the signing secret, and nothing else so far.
+//
+// The text is plain selectable content whether or not the script runs, so the button is an
+// improvement on a working page rather than the only way to get the value.
+//
+// The fallback is not legacy politeness. navigator.clipboard requires a secure context, and a worker
+// on a machine's own network is very often plain HTTP — on that install execCommand is the only thing
+// that works at all. If even that is refused the text is left selected, so Ctrl+C still finishes the
+// job and the button says so.
+function view_copyable($value) {
+  $GLOBALS['bbl_needs_copy_script'] = true;
+  static $n = 0;
+  $id = 'copyable' . (++$n);
+  echo '<span class="copyable"><code class="wrap" id="' . $id . '">' . h($value) . '</code>'
+     . '<button type="button" class="copy" data-copy="' . $id . '">Copy</button></span>';
+}
+
 function view_footer() {
+  if (!empty($GLOBALS['bbl_needs_copy_script'])) {
+    view_copy_script();
+  }
   echo "</main>\n</body>\n</html>\n";
+}
+
+// Written only on a page that rendered something copyable, so every other page stays script-free.
+function view_copy_script() {
+  ?>
+<script>
+document.addEventListener('click', function (event) {
+  var button = event.target.closest('button.copy');
+  if (!button) { return; }
+  var source = document.getElementById(button.getAttribute('data-copy'));
+  if (!source) { return; }
+
+  var say = function (word) {
+    button.textContent = word;
+    setTimeout(function () { button.textContent = 'Copy'; }, 1600);
+  };
+
+  // Leaves the text selected on the way out, so a refusal still ends with Ctrl+C working.
+  var selectAndCopy = function () {
+    var range = document.createRange();
+    range.selectNodeContents(source);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    var copied = false;
+    try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+    say(copied ? 'Copied' : 'Press Ctrl+C');
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(source.textContent).then(function () { say('Copied'); },
+                                                           selectAndCopy);
+    return;
+  }
+  selectAndCopy();
+});
+</script>
+<?php
 }
 
 function view_flash($error = null, $ok = null) {

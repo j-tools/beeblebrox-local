@@ -122,6 +122,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         throw new RuntimeException('That does not look like an address. It should start with ' .
           'http:// or https:// and be how you actually reach these pages.');
       }
+      // HTTPS, unless nothing leaves the machine.
+      //
+      // These pages are where the sign-in password is typed, where the instance's API key is pasted,
+      // and where the signing secret is displayed. Over plain HTTP on any network somebody else is
+      // on, all three are readable — and a worker is a thing that runs commands, so the account that
+      // administers it is worth more than most.
+      //
+      // A loopback address is exempt because the traffic genuinely does not leave the machine, which
+      // is also how browsers decide what counts as a secure context. That keeps the ordinary case —
+      // a worker on your own laptop, opened at localhost — free of a certificate it gains nothing
+      // from, and it is the reason this is a rule about the address rather than about the protocol.
+      if (!site_url_is_local($site_url) && stripos($site_url, 'https://') !== 0) {
+        throw new RuntimeException('That address needs https. These pages carry the password for this ' .
+          'worker, the API key for your instance and the signing secret, so on any address other ' .
+          'people can reach they have to be encrypted. Two ways round it: put a certificate on ' .
+          $site_url . ', or open this worker at http://localhost instead — traffic that never leaves ' .
+          'the machine is exempt, and that is the usual answer for a worker on your own computer.');
+      }
 
       // Generated once and kept. Regenerating it on a later pass through setup would make every
       // secret already stored undecryptable, which is a bad way to find out you clicked twice.
@@ -223,21 +241,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         throw new RuntimeException('Pick at least one. With neither, no work can ever reach this ' .
           'machine.');
       }
-      $secret = trim((string)($_POST['webhook_secret'] ?? ''));
-      // Generated rather than demanded. Being asked to invent a long random string is the moment this
-      // used to go wrong: there is no way to tell from the field that the same string has to exist on
-      // the instance too, so people typed one and moved on, and nothing arrived for a reason that
-      // looked like nothing at all.
+      // Generated here and never asked for. Two reasons, and the second is the stronger: the instance
+      // never shows a dispatcher's secret back — its page prints only "set" or "not set" — so the only
+      // direction that can ever work is out of this machine and into the other ends. And a string a
+      // person thought of on the spot is the weaker of the two by a wide margin.
+      //
+      // 32 bytes rather than 24 because nobody has to type it, so the length costs nothing.
       $generated = false;
-      if ($hook && $secret === '' && !setting_secret_is_set('webhook_secret')) {
-        $secret = bin2hex(random_bytes(24));
+      if ($hook && !setting_secret_is_set('webhook_secret')) {
+        setting_set('webhook_secret', bin2hex(random_bytes(32)));
         $generated = true;
       }
       setting_set('poll_enabled', $poll ? '1' : '0');
       setting_set('accept_webhooks', $hook ? '1' : '0');
-      if ($secret !== '') {
-        setting_set('webhook_secret', $secret);
-      }
       setup_mark_answered('work');
       if ($generated) {
         // Deliberately back to this step rather than on. There is now something to do on the instance,
@@ -321,9 +337,14 @@ view_masthead();
       <input type="hidden" name="step" value="basics">
       <label>The address you open this on
         <input type="text" name="site_url" autofocus required value="<?= h($suggested) ?>">
+        <small><strong>Must be <code>https://</code></strong> unless it is
+          <code>localhost</code> — these pages hold this worker's password, your instance's API key
+          and the signing secret, so on any address other people can reach they have to be encrypted.
+          A worker on your own machine, opened at <code>localhost</code>, is exempt: that traffic
+          never leaves the machine, which is the same test a browser uses.</small>
         <small>Filled in from how you reached this page, which is almost always right. It is not
-          cosmetic: the sign-in cookie takes its <code>Secure</code> flag from this rather than from
-          the request, so a forged <code>Host</code> header cannot turn it off.</small>
+          cosmetic either: the sign-in cookie takes its <code>Secure</code> flag from this rather than
+          from the request, so a forged <code>Host</code> header cannot turn it off.</small>
       </label>
       <div class="actions nav">
 <?php setup_back_link("basics"); ?>
@@ -432,15 +453,10 @@ view_masthead();
          <code><?= h(rtrim(bbl_config()['site_url'], '/')) ?>/hook.php</code>. You can turn this on
          later. Either way the runner still needs a schedule: an envelope arriving writes the task
          down, and the runner is what does it.</p>
-      <label>Signing secret
-        <input type="password" name="webhook_secret" autocomplete="off"
-               placeholder="<?= setting_secret_is_set('webhook_secret')
-                 ? 'stored — leave empty to keep it' : 'left empty, one is generated for you' ?>">
-        <small>Leave it empty and one is made here, which is the easier way round — you will be shown
-          it, and where it goes. The same string has to be on the dispatcher at your instance: without
-          a match every envelope is refused, deliberately, because an envelope eventually starts a
-          program on this machine.</small>
-      </label>
+      <p class="small muted" style="margin:0">A signing secret is generated here when you switch this
+         on, and shown to you with what to do with it. There is nothing to invent: the same string has
+         to exist on the dispatcher at your instance, and without a match every envelope is refused —
+         deliberately, because an envelope eventually starts a program on this machine.</p>
       <div class="actions nav">
 <?php setup_back_link("work"); ?>
         <button type="submit">Continue</button>
@@ -468,11 +484,16 @@ view_masthead();
           has to be able to reach that, which for a machine behind a router means a port forward or a
           tunnel. Nothing here can arrange that for you.</span></li>
       <li><strong>Signing secret</strong>
-        <span><code class="wrap"><?= h(setting_secret('webhook_secret')) ?></code></span></li>
+        <span>Paste this, exactly:</span>
+        <?php view_copyable(setting_secret('webhook_secret')); ?></li>
     </ol>
-    <p class="small muted">This step is the only screen that shows the secret, and only while webhooks
-       are switched on here — it is stored encrypted and read back for this. Copy it now rather than
-       coming looking for it; if it is ever lost, set a new one on both ends.</p>
+    <p class="small muted">Generated here, and it only travels outwards: your instance never shows a
+       dispatcher's secret back, so this machine is the one copy worth trusting. It is on the
+       <a href="settings.php">settings page</a> too if you come looking for it later.</p>
+    <p class="small muted"><strong>Going through a Beeblebrox Proxy?</strong> The proxy does not need
+       this. It passes the envelope through byte for byte and the check happens here, on the machine
+       that acts on it — giving the proxy a copy only lets it turn obvious rubbish away at your edge,
+       which is worth doing and is not what keeps you safe.</p>
     <p class="small muted">Then use <strong>send a test envelope</strong> on that page. It sends a real
        signed envelope naming a task that does not exist, so accepting it proves the address and the
        signature without touching anybody's work.</p>

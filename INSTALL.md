@@ -108,17 +108,33 @@ everything the plain `DocumentRoot` used to answer:
 Point that at whatever the server's `DocumentRoot` in `httpd.conf` already is, and put it before the
 one above.
 
-Restart Apache, open `http://local.beeblebrox.cloud`, and set a password. That password is the only
+Restart Apache and open it — at `http://localhost/...` if this worker is only ever used from this
+machine, or at `https://local.beeblebrox.cloud` with a certificate if anybody else reaches it. Plain
+HTTP on a name like `local.beeblebrox.cloud` is refused even though it resolves to 127.0.0.1 — the
+paragraph below says why.
+
+Set a password. That password is the only
 thing between this machine's API key and anybody else who can reach the address. If you ever lose it,
 `php tools/reset-password.php` on this machine forgets it and ends every signed-in session, and the
 next visit sets a new one — there is no email here to send a link to.
 
-**Reach it at the address you will keep using.** The session cookie takes its `Secure` flag and its
-path from the address confirmed in setup, never from the request, so that a forged `Host` header
-cannot weaken either. The cost is that visiting later over plain HTTP an install configured for
-`https://`, or at the domain root one configured for a subdirectory, produces a cookie the browser is
-right to refuse to send back — and the only symptom is the sign-in form returning as though the
-password were wrong. The sign-in page says so when it detects it, but it is easier not to cause.
+**It has to be `https://`, unless it is `localhost`.** Setup refuses anything else. These pages hold
+this worker's password, your instance's API key and the signing secret, and a worker is a thing that
+runs commands — so on any address other people can reach, all of that has to be encrypted. A worker
+on your own machine opened at `http://localhost` is exempt, because that traffic never leaves the
+machine; it is the same test a browser uses to decide what counts as a secure context, and it is the
+ordinary answer for a worker on a laptop.
+
+A name that merely resolves to `127.0.0.1` is not exempt. Whether it does is a DNS answer that can
+change, and `worker.example.internal` is exactly the case where somebody believes it is local and it
+is not.
+
+**Reach it at the address you will keep using.** The session cookie takes its `Secure` flag from the
+address confirmed in setup, never from the request, so that a forged `Host` header cannot weaken it.
+The cost is that visiting an install configured for `https://` over plain HTTP produces a cookie the
+browser is right to refuse to send back — and the only symptom is the sign-in form returning as
+though the password were wrong. The sign-in page says so when it detects it, but it is easier not to
+cause.
 
 Setting it drops you straight into setup. It confirms the address you reached it on and writes
 `config.local.php` for you, then asks four things: which Beeblebrox this machine works for, a key to
@@ -226,9 +242,18 @@ dispatcher you made in section 5 from `pull` to `webhook` and fill in:
 
 | | |
 |---|---|
-| URL | `http://local.beeblebrox.cloud/hook.php` |
-| secret | the same string you put in **Signing secret** here |
+| URL | `https://local.beeblebrox.cloud/hook.php` |
+| secret | the one shown on the **how work arrives** step here — copy it, do not invent one |
 | timeout | 10 seconds — accepting is all this has to do |
+
+The secret is generated on this machine when you switch webhooks on, and travels outwards only: the
+instance never shows a dispatcher's secret back, printing just "set" or "not set", so this end is the
+only copy worth trusting. There is nothing to type at either end.
+
+**Going through a Beeblebrox Proxy?** It does not need the secret. The proxy passes the envelope
+through byte for byte and the signature is checked here, on the machine that acts on it. Giving the
+proxy a copy is optional and only lets it turn obvious rubbish away at your edge — worth doing, but
+not the thing that keeps you safe.
 
 Its test button then sends a real signed envelope naming task 0, which no task ever is, and the
 result shows on the diagnostics page either way.

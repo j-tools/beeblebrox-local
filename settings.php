@@ -66,6 +66,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
       $notice = 'Saved.';
 
+      // The signing secret is never typed here. It is generated on this machine because the instance
+      // will not show a dispatcher's secret back, so this end is the only one that can be the source
+      // of it — and a human-chosen one would be the weaker half of the pair. After the plain "Saved."
+      // above, so the more specific sentence is the one that survives.
+      if (setting_bool('accept_webhooks')
+          && (!setting_secret_is_set('webhook_secret') || !empty($_POST['replace_webhook_secret']))) {
+        $replacing = !empty($_POST['replace_webhook_secret']) && setting_secret_is_set('webhook_secret');
+        setting_set('webhook_secret', bin2hex(random_bytes(32)));
+        $notice = $replacing
+          ? 'Saved, with a new signing secret. The old one stops being believed now, so change the ' .
+            'dispatcher at your instance to match.'
+          : 'Saved, and a signing secret was generated. Put it on the dispatcher at your instance.';
+      }
+
       // Testing saves first, deliberately. Testing what is stored while the form shows something
       // else is the kind of answer that costs an afternoon.
       if ($action === 'test') {
@@ -135,13 +149,24 @@ view_flash($error, $notice);
   <p class="small muted" style="margin:0">Point a dispatcher on the instance at
      <code><?= h($hook_url) ?></code>. That needs the instance to be able to reach this machine —
      a port forward, or a tunnel. If it cannot, leave this off and let polling do the work.</p>
+<?php if (setting_secret_is_set('webhook_secret')): ?>
   <label>Signing secret
-    <input type="password" name="webhook_secret" autocomplete="off"
-           placeholder="<?= setting_secret_is_set('webhook_secret') ? 'stored — leave empty to keep it' : 'not set' ?>">
-    <small>The same string as the dispatcher's secret on the instance. Without a match every envelope
-      is refused, which is deliberate: an unsigned envelope eventually starts an agent on this
+    <?php view_copyable(setting_secret('webhook_secret')); ?>
+    <small>This exact string has to be on the dispatcher at your instance, and on a Beeblebrox Proxy
+      if you use one and want it to turn rubbish away at your edge. Without a match every envelope is
+      refused, which is deliberate: an unsigned envelope eventually starts an agent on this
       machine.</small>
   </label>
+  <label class="inline"><input type="checkbox" name="replace_webhook_secret" value="1">
+    Replace it with a new one</label>
+  <p class="small muted" style="margin:0">Everything holding the old one stops being believed the
+     moment you save, so change the dispatcher at the same time.</p>
+<?php else: ?>
+  <p class="small muted" style="margin:0">No signing secret yet. One is generated the first time you
+     save with webhooks switched on — there is nothing to type. Your instance never shows a
+     dispatcher's secret back, so the only direction that can work is out of this machine and into
+     the other ends, and a string invented on the spot would be the weaker of the two anyway.</p>
+<?php endif; ?>
   <label>Clock tolerance
     <input type="text" name="signature_tolerance" inputmode="numeric"
            value="<?= h(setting('signature_tolerance')) ?>">

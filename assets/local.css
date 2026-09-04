@@ -95,6 +95,26 @@
 /* A secret or a URL inside a step, where breaking mid-string is right and overflowing the card is not. */
 code.wrap { overflow-wrap: anywhere; }
 
+/* A value and the button that copies it. The value keeps its own line on a phone, because a 64
+   character secret and a button do not share one. */
+.copyable { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .2rem; }
+.copyable code { flex: 1 1 16rem; }
+button.copy {
+  flex: none;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: .3rem;
+  padding: .25rem .6rem;
+  min-height: 0;
+  cursor: pointer;
+  min-width: 5.5rem;
+}
+button.copy:hover { color: var(--ink); border-color: var(--muted); }
+
 /* A form row where the field and its explanation belong together. */
 .stack label small { color: var(--muted); font-weight: normal; line-height: 1.45; }
 .stack .danger small { color: var(--bad); }

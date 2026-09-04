@@ -105,6 +105,19 @@ function bbl_guess_site_url() {
 // the script's own directory, and the name carries a digest of the installation directory so that no
 // two copies can collide however they are served. Both are facts the server knows about itself;
 // neither can be influenced by a request, which is what site_url was being used to avoid.
+// Whether an address is one where traffic never leaves the machine. The same test browsers use to
+// decide a page is a secure context, and the reason a worker on somebody's own laptop needs no
+// certificate: there is no network between the browser and the server to protect.
+//
+// Hostnames that merely resolve to a loopback address are deliberately not accepted. Whether they do
+// is a DNS answer that can change, it cannot be checked from the browser's side at all, and a name
+// like worker.example.internal is exactly the case where somebody believes it is local and it is not.
+function site_url_is_local($url) {
+  $host = strtolower((string)parse_url((string)$url, PHP_URL_HOST));
+  return in_array($host, ['localhost', '127.0.0.1', '::1', '[::1]'], true)
+    || str_ends_with($host, '.localhost');
+}
+
 function bbl_cookie_name() {
   static $name = null;
   if ($name === null) {
