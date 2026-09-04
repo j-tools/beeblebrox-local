@@ -90,9 +90,42 @@ function bbl_guess_site_url() {
 // A subdirectory install that scoped its cookie to '/' would hand it to everything else on the same
 // host — and two of these on one host would sign each other out, since they would collide on both
 // name and path.
+// The name and the path of this install's cookies, both taken from where it actually sits — on disk
+// and on the server — rather than from site_url.
+//
+// This matters far more than it sounds. Every PHP application defaults to a cookie called PHPSESSID
+// on path /, so two of them under one hostname overwrite each other's session: signing in to one
+// silently signs you out of the other, and arriving at a page holding the wrong installation's id
+// looks exactly like a session that expired for no reason. A development machine serving several
+// sites from one hostname hits this at once, and so does anyone keeping a staging copy beside a live
+// one — three copies of this very application on one host is what found it.
+//
+// Taking the path from site_url could not fix that, because site_url does not exist yet on the screen
+// where it is first needed: setup writes it, and setup is behind the sign-in. So the path comes from
+// the script's own directory, and the name carries a digest of the installation directory so that no
+// two copies can collide however they are served. Both are facts the server knows about itself;
+// neither can be influenced by a request, which is what site_url was being used to avoid.
+function bbl_cookie_name() {
+  static $name = null;
+  if ($name === null) {
+    $name = 'bbl_' . substr(sha1(__DIR__), 0, 10);
+  }
+  return $name;
+}
+
+// The one-hour token that ties a submitted sign-in form to the browser that was shown it. Same
+// reasoning, same digest, so two installs cannot invalidate each other's forms either.
+function bbl_form_cookie_name() {
+  return bbl_cookie_name() . '_form';
+}
+
 function bbl_cookie_path() {
-  $path = parse_url(bbl_config()['site_url'], PHP_URL_PATH);
-  return ($path === null || $path === '' || $path === '/') ? '/' : '/' . trim($path, '/') . '/';
+  // dirname of the running script: '/beeblebrox-local' in a subdirectory, or the root itself.
+  // DIRECTORY_SEPARATOR rather than a literal backslash: dirname returns the platform's separator,
+  // and this runs on Windows more often than not. SCRIPT_NAME is decided by the server, never sent
+  // by the client, which is what makes it safe to scope a cookie by.
+  $dir = rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
+  return $dir === '' ? '/' : $dir . '/';
 }
 
 // A key nobody has to think of. Thirty-two random bytes as hex is not a decision, and asking a person

@@ -57,10 +57,11 @@ function bbl_session_start() {
   }
   $cfg = bbl_config();
 
-  // Both the flag and the path come from the configured site URL, never from the request. Behind a
-  // tunnel that terminates TLS elsewhere, $_SERVER['HTTPS'] is false on exactly the setup that needs
-  // Secure — and the path is what keeps an install in a subdirectory from handing its session to
-  // everything else on the same host.
+  // Secure comes from the configured site URL and never from the request: behind a tunnel that
+  // terminates TLS elsewhere, $_SERVER['HTTPS'] is false on exactly the setup that needs it, and
+  // X-Forwarded-Proto is a header anybody can send. The path comes from where this script actually
+  // is, which the server knows and a request cannot influence — and which, unlike site_url, is
+  // already true on the sign-in screen that precedes setup.
   $cookie = [
     'path'     => bbl_cookie_path(),
     'secure'   => str_starts_with($cfg['site_url'], 'https://'),
@@ -70,6 +71,11 @@ function bbl_session_start() {
 
   ini_set('session.gc_maxlifetime', (string)bbl_session_lifetime());
   ini_set('session.use_strict_mode', '1');
+
+  // Not PHPSESSID. Every PHP application on a host uses that name by default, so two of them under
+  // one hostname hand each other session ids belonging to a database the other has never seen — and
+  // the symptom is a sign-in that succeeds and then asks again, with a row written each time.
+  session_name(bbl_cookie_name());
   session_set_cookie_params(['lifetime' => bbl_session_lifetime()] + $cookie);
   bbl_session_store();
   session_start();
@@ -122,18 +128,9 @@ function bbl_cookie_warning() {
       'https, or correct site_url in config.local.php.';
   }
 
-  // The other fatal one, and the reason an install in a subdirectory is worth getting right: a cookie
-  // scoped to /worker/ is not sent to /, so a site_url naming a directory this page is not inside
-  // produces the same silent failure.
-  $path = bbl_cookie_path();
-  $here = (string)($_SERVER['REQUEST_URI'] ?? '/');
-  if ($path !== '/' && strncmp($here, $path, strlen($path)) !== 0) {
-    return 'This install is configured as ' . $configured . ', so its sign-in cookie is scoped to ' .
-      $path . ' — and you are reading this at ' . $here . ', which is outside that. Your browser will ' .
-      'not send the cookie back, so signing in cannot work. Reach these pages under ' . $path .
-      ', or correct site_url in config.local.php.';
-  }
-
+  // There is deliberately no check here for the cookie's path. It is taken from this script's own
+  // directory now, so it always covers the page being read — the mismatch that used to be possible
+  // cannot happen any more, and a check for it would only be a thing to keep working.
   return null;
 }
 
@@ -178,7 +175,7 @@ function bbl_output_started() {
   return $length !== false && $length > 0;
 }
 function bbl_pre_auth_start() {
-  $token = $_COOKIE['bbl_form'] ?? '';
+  $token = $_COOKIE[bbl_form_cookie_name()] ?? '';
   if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
     if (bbl_output_started()) {
       throw new RuntimeException(
@@ -187,14 +184,14 @@ function bbl_pre_auth_start() {
       );
     }
     $token = bin2hex(random_bytes(32));
-    setcookie('bbl_form', $token, [
+    setcookie(bbl_form_cookie_name(), $token, [
       'expires'  => time() + 3600,
       'path'     => bbl_cookie_path(),
       'secure'   => str_starts_with(bbl_config()['site_url'], 'https://'),
       'httponly' => true,
       'samesite' => 'Lax',
     ]);
-    $_COOKIE['bbl_form'] = $token;
+    $_COOKIE[bbl_form_cookie_name()] = $token;
   }
   $GLOBALS['bbl_pre_auth_token'] = $token;
 }
@@ -210,7 +207,7 @@ function bbl_pre_auth_field() {
 }
 
 function bbl_check_pre_auth() {
-  $cookie = $_COOKIE['bbl_form'] ?? '';
+  $cookie = $_COOKIE[bbl_form_cookie_name()] ?? '';
   $sent = $_POST['form_token'] ?? '';
   if (is_string($sent) && $sent !== '' && $cookie !== '' && hash_equals($cookie, $sent)) {
     return;
