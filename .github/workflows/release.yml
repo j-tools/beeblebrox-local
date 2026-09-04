@@ -42,10 +42,24 @@ jobs:
       # Refused rather than published: a zip carrying a config file would be publishing whatever
       # happened to be in it. It cannot happen — config.local.php is gitignored and git archive only
       # takes what is committed — which is exactly why it is worth one line to be sure.
-      - name: Refuse to publish a config
+      # The database is the other thing that must never ship: it holds session ids and a password
+      # hash. It cannot happen — data/*.sqlite is gitignored and git archive takes only what is
+      # committed — which is why it is worth one line to be sure. This is the last place a gitignored
+      # file could reach the public: the website used to check the zips it served, and it no longer
+      # serves any.
+      - name: Refuse to publish a config or a database
         run: |
-          if unzip -l beeblebrox-local.zip | grep -q 'config\.local\.php'; then
-            echo "config.local.php is in the archive; not publishing." >&2
+          if unzip -l beeblebrox-local.zip | grep -qE 'config\.local\.php|\.sqlite'; then
+            echo "A config or a database is in the archive; not publishing." >&2
+            exit 1
+          fi
+
+      # Refused the other way round: the archive must *contain* this. Without it an unzip on Apache
+      # serves data/ and the store with it, and the person installing has no reason to look.
+      - name: Refuse to publish without the data guard
+        run: |
+          if ! unzip -l beeblebrox-local.zip | grep -q 'data/\.htaccess'; then
+            echo "data/.htaccess is missing from the archive; not publishing." >&2
             exit 1
           fi
 
