@@ -109,7 +109,16 @@ Point that at whatever the server's `DocumentRoot` in `httpd.conf` already is, a
 one above.
 
 Restart Apache, open `http://local.beeblebrox.cloud`, and set a password. That password is the only
-thing between this machine's API key and anybody else who can reach the address.
+thing between this machine's API key and anybody else who can reach the address. If you ever lose it,
+`php tools/reset-password.php` on this machine forgets it and ends every signed-in session, and the
+next visit sets a new one — there is no email here to send a link to.
+
+**Reach it at the address you will keep using.** The session cookie takes its `Secure` flag and its
+path from the address confirmed in setup, never from the request, so that a forged `Host` header
+cannot weaken either. The cost is that visiting later over plain HTTP an install configured for
+`https://`, or at the domain root one configured for a subdirectory, produces a cookie the browser is
+right to refuse to send back — and the only symptom is the sign-in form returning as though the
+password were wrong. The sign-in page says so when it detects it, but it is easier not to cause.
 
 Setting it drops you straight into setup. It confirms the address you reached it on and writes
 `config.local.php` for you, then asks four things: which Beeblebrox this machine works for, a key to

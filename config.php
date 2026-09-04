@@ -57,16 +57,23 @@ function bbl_local_config_path() {
 //
 // Only ever a suggestion a person confirms. Everywhere the site_url is used for a decision it comes
 // from configuration, precisely so a forged Host header cannot make it.
-function bbl_guess_site_url() {
-  // X-Forwarded-Proto matters here rather than being sloppy: a worker reached through a tunnel gets
-  // plain HTTP at the door, and suggesting http:// to somebody who then accepts it would silently
-  // drop the Secure flag from their session cookie.
+// How this request actually arrived, as opposed to how the configuration says it should have.
+//
+// X-Forwarded-Proto matters here rather than being sloppy: a worker reached through a tunnel gets
+// plain HTTP at the door, and reading only $_SERVER['HTTPS'] would call that connection insecure
+// when it is not.
+function bbl_request_scheme() {
   $forwarded = strtolower(trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
   if ($forwarded === 'https' || $forwarded === 'http') {
-    $scheme = $forwarded;
-  } else {
-    $scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+    return $forwarded;
   }
+  return (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+}
+
+function bbl_guess_site_url() {
+  // Suggesting http:// to somebody who then accepts it would silently drop the Secure flag from
+  // their session cookie, so the scheme is taken from how the request really arrived.
+  $scheme = bbl_request_scheme();
 
   $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 

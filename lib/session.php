@@ -100,6 +100,43 @@ function bbl_require_signin() {
 
 // A new session id on sign-in, so a session fixed before sign-in is not the one that ends up
 // authenticated.
+// Why signing in can appear to do nothing at all.
+//
+// The session cookie's Secure flag and its path both come from the configured site_url and never from
+// the request — deliberately, so a forged Host header cannot weaken either. The cost is that a
+// site_url which does not match how somebody actually reaches these pages produces a cookie the
+// browser is then right to refuse to send back. The password is checked, the sign-in succeeds, the
+// redirect happens, and the next request arrives with no session: the form returns looking exactly
+// like a wrong password, and nothing anywhere says why.
+//
+// Returns a sentence naming the mismatch, or null when there is nothing wrong.
+function bbl_cookie_warning() {
+  $configured = (string)bbl_config()['site_url'];
+
+  // The fatal one. A Secure cookie is not sent over plain HTTP, so no session can ever survive a
+  // redirect on an install configured for https and reached over http.
+  if (str_starts_with($configured, 'https://') && bbl_request_scheme() !== 'https') {
+    return 'This install is configured as ' . $configured . ' but you are reading this over plain ' .
+      'HTTP. The sign-in cookie is marked Secure because of that setting, so your browser will not ' .
+      'send it back and signing in cannot work however right the password is. Reach these pages over ' .
+      'https, or correct site_url in config.local.php.';
+  }
+
+  // The other fatal one, and the reason an install in a subdirectory is worth getting right: a cookie
+  // scoped to /worker/ is not sent to /, so a site_url naming a directory this page is not inside
+  // produces the same silent failure.
+  $path = bbl_cookie_path();
+  $here = (string)($_SERVER['REQUEST_URI'] ?? '/');
+  if ($path !== '/' && strncmp($here, $path, strlen($path)) !== 0) {
+    return 'This install is configured as ' . $configured . ', so its sign-in cookie is scoped to ' .
+      $path . ' — and you are reading this at ' . $here . ', which is outside that. Your browser will ' .
+      'not send the cookie back, so signing in cannot work. Reach these pages under ' . $path .
+      ', or correct site_url in config.local.php.';
+  }
+
+  return null;
+}
+
 function bbl_sign_in() {
   session_regenerate_id(true);
   $_SESSION['signed_in'] = true;

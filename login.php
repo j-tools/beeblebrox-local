@@ -58,6 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 view_header($first_run ? 'Set a password' : 'Sign in');
 ?>
 <div class="narrow-wrap">
+<?php
+// Shown before the form rather than after a failed attempt, because the failure this describes does
+// not look like a failure: the password is accepted and the next page asks for it again.
+$cookie_warning = bbl_cookie_warning();
+if ($cookie_warning !== null): ?>
+  <div class="error"><strong>Signing in cannot work from this address.</strong>
+    <?= h($cookie_warning) ?></div>
+<?php endif; ?>
 <?php if ($first_run): ?>
   <h2>First run</h2>
   <p>Nobody has set a password for this receiver yet. Choose one — it is the only thing between this
@@ -84,8 +92,9 @@ view_header($first_run ? 'Set a password' : 'Sign in');
     </label>
     <button type="submit">Sign in</button>
   </form>
-  <p class="small muted">Forgotten it? Clear the row from the database and reload this page:
-     <code>DELETE FROM settings WHERE name = 'admin_password_hash';</code></p>
+  <p class="small muted">Forgotten it? There is no email here to send a link to, so it is reset from
+     the machine: run <code>php tools/reset-password.php</code> in this directory, then reload this
+     page and set a new one.</p>
 <?php endif; ?>
 </div>
 <?php
