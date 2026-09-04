@@ -10,6 +10,9 @@
   --accent: #b4451f;
   --ok: #2f6b3a;
   --bad: #a3282a;
+  /* The fill behind "carry on" in the setup wizard. Not --ok: that one is tuned to be read as text
+     against the page, and in dark mode it is a pale green that white letters disappear into. */
+  --go: #2f6b3a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +25,7 @@
     --accent: #e2703f;
     --ok: #6fbf7f;
     --bad: #e2686a;
+    --go: #2f7d43;
   }
 }
 

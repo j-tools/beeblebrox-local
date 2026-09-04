@@ -92,6 +92,9 @@
 .steps > li > strong { display: block; margin-bottom: .15rem; }
 .steps span { color: var(--muted); font-size: .9rem; }
 
+/* A secret or a URL inside a step, where breaking mid-string is right and overflowing the card is not. */
+code.wrap { overflow-wrap: anywhere; }
+
 /* A form row where the field and its explanation belong together. */
 .stack label small { color: var(--muted); font-weight: normal; line-height: 1.45; }
 .stack .danger small { color: var(--bad); }
@@ -102,6 +105,29 @@
   background: none;
   border: 1px solid var(--line);
   color: var(--ink);
+  text-decoration: none;
+  border-radius: .4rem;
+  padding: .65rem 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+/* A wizard step's row. Everything sits at the right end and the way back is pushed to the far left by
+   its own auto margin, so the two directions are where the eye already looks for them — and the rule
+   still holds on the first step, where there is no way back and the button stands alone. */
+.actions.nav { justify-content: flex-end; }
+.actions.nav a.back { margin-right: auto; }
+.actions.nav button[type="submit"] { background: var(--go); color: #fff; }
+
+/* Outlined rather than filled: red enough to read as the opposite of the green one, without looking
+   like the button that throws something away. Nothing here is destructive — every answer is already
+   saved, which is the whole reason going back is safe. */
+.actions a.back {
+  background: none;
+  border: 1px solid var(--bad);
+  color: var(--bad);
   text-decoration: none;
   border-radius: .4rem;
   padding: .65rem 1rem;

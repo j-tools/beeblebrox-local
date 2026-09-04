@@ -156,6 +156,13 @@ function instance_keys_url() {
   return instance_base() . '/keys.php?worker=1';
 }
 
+// The instance's dispatchers page. Where the other half of a webhook lives: this machine can hold a
+// signing secret all it likes, but until the same string is on a dispatcher over there, every envelope
+// sent here is refused — which is the point of the secret and looks exactly like nothing happening.
+function instance_dispatchers_url() {
+  return instance_base() . '/dispatchers.php';
+}
+
 // What the company is called, falling back to the instance's own name — which is the same word in
 // every hosted case, since an instance is <company>.beeblebrox.cloud.
 //

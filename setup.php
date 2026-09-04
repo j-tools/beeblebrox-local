@@ -64,7 +64,8 @@ function setup_previous($step) {
   return ($at === false || $at === 0) ? null : $names[$at - 1];
 }
 
-// Rendered under every form. A link rather than a button, because going back submits nothing.
+// Rendered at the left end of every form's button row. A link rather than a button, because going back
+// submits nothing — it only re-opens a step whose answer was already saved.
 function setup_back_link($step) {
   $previous = setup_previous($step);
   if ($previous === null) {
@@ -74,7 +75,7 @@ function setup_back_link($step) {
   $names = array_keys(setup_steps());
   $title = $titles[array_search($previous, $names, true)] ?? 'Back';
   ?>
-  <a class="secondary" href="setup.php?step=<?= h($previous) ?>">&larr; <?= h($title) ?></a>
+  <a class="back" href="setup.php?step=<?= h($previous) ?>">&larr; <?= h($title) ?></a>
 <?php
 }
 
@@ -97,6 +98,10 @@ if (!isset($steps[$step]) && $step !== 'done') {
 
 $error = null;
 $notice = null;
+if (!empty($_SESSION['setup_notice'])) {
+  $notice = $_SESSION['setup_notice'];
+  unset($_SESSION['setup_notice']);
+}
 
 // Something true and worth acting on that is not a failure — so neither the red flash nor the green
 // one. Carried across the redirect that leaves the step where it was found, because the next screen
@@ -219,10 +224,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'machine.');
       }
       $secret = trim((string)($_POST['webhook_secret'] ?? ''));
+      // Generated rather than demanded. Being asked to invent a long random string is the moment this
+      // used to go wrong: there is no way to tell from the field that the same string has to exist on
+      // the instance too, so people typed one and moved on, and nothing arrived for a reason that
+      // looked like nothing at all.
+      $generated = false;
       if ($hook && $secret === '' && !setting_secret_is_set('webhook_secret')) {
-        throw new RuntimeException('A webhook needs a signing secret, or every envelope is refused. ' .
-          'Put the same string here and on the dispatcher — or leave webhooks off and let polling ' .
-          'do the work.');
+        $secret = bin2hex(random_bytes(24));
+        $generated = true;
       }
       setting_set('poll_enabled', $poll ? '1' : '0');
       setting_set('accept_webhooks', $hook ? '1' : '0');
@@ -230,6 +239,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setting_set('webhook_secret', $secret);
       }
       setup_mark_answered('work');
+      if ($generated) {
+        // Deliberately back to this step rather than on. There is now something to do on the instance,
+        // and this is the only screen that shows the secret it needs.
+        $_SESSION['setup_notice'] = 'A signing secret was generated. It is below, with what to do ' .
+          'with it — then carry on.';
+        header('Location: setup.php?step=work');
+        exit;
+      }
       header('Location: setup.php?step=agent');
       exit;
     }
@@ -308,9 +325,9 @@ view_masthead();
           cosmetic: the sign-in cookie takes its <code>Secure</code> flag from this rather than from
           the request, so a forged <code>Host</code> header cannot turn it off.</small>
       </label>
-      <div class="actions">
-        <button type="submit">Save this and carry on</button>
+      <div class="actions nav">
 <?php setup_back_link("basics"); ?>
+        <button type="submit">Save this and carry on</button>
       </div>
     </form>
   </div>
@@ -350,9 +367,9 @@ view_masthead();
         <small>What appears at the top of every page here, so you can tell one worker from another
           at a glance. It links back to the instance.</small>
       </label>
-      <div class="actions">
-        <button type="submit">Continue</button>
+      <div class="actions nav">
 <?php setup_back_link("company"); ?>
+        <button type="submit">Continue</button>
       </div>
     </form>
   </div>
@@ -386,9 +403,9 @@ view_masthead();
                  ? 'stored — leave empty to keep it' : 'paste it here' ?>">
         <small>Stored encrypted, and never shown again from this side either.</small>
       </label>
-      <div class="actions">
-        <button type="submit">Check it and continue</button>
+      <div class="actions nav">
 <?php setup_back_link("key"); ?>
+        <button type="submit">Check it and continue</button>
       </div>
     </form>
   </div>
@@ -418,17 +435,49 @@ view_masthead();
       <label>Signing secret
         <input type="password" name="webhook_secret" autocomplete="off"
                placeholder="<?= setting_secret_is_set('webhook_secret')
-                 ? 'stored — leave empty to keep it' : 'only needed for webhooks' ?>">
-        <small>Any long random string, set identically on the dispatcher at your instance. Without a
-          match every envelope is refused — deliberately, because an envelope eventually starts a
+                 ? 'stored — leave empty to keep it' : 'left empty, one is generated for you' ?>">
+        <small>Leave it empty and one is made here, which is the easier way round — you will be shown
+          it, and where it goes. The same string has to be on the dispatcher at your instance: without
+          a match every envelope is refused, deliberately, because an envelope eventually starts a
           program on this machine.</small>
       </label>
-      <div class="actions">
-        <button type="submit">Continue</button>
+      <div class="actions nav">
 <?php setup_back_link("work"); ?>
+        <button type="submit">Continue</button>
       </div>
     </form>
   </div>
+
+<?php if (setting_bool('accept_webhooks') && setting_secret_is_set('webhook_secret')): ?>
+  <div class="card">
+    <p class="lede" style="margin-top:0">The other half of this is on your instance.</p>
+    <p class="small">A webhook has two ends and only one of them is here. Until a dispatcher at
+       <?= h(company_name()) ?> points at this machine and carries the same secret, nothing is pushed —
+       and because a refused envelope is silent by design, it looks exactly like nothing happening.</p>
+    <ol class="steps">
+      <li><strong>Open the dispatchers page</strong>
+        <span><a href="<?= h(instance_dispatchers_url()) ?>" target="_blank" rel="noopener">
+          <?= h(instance_base()) ?>/dispatchers.php</a> — signed in as a company admin. If a dispatcher
+          for this machine is already there, edit that one rather than adding a second.</span></li>
+      <li><strong>Its kind must be <code>webhook</code></strong>
+        <span>A pulling worker is never posted to, so it has no URL and no secret at all. If the
+          dispatcher you made for this machine is a pulling one, change it here — nothing else about
+          the setup changes, and the key it already holds keeps working.</span></li>
+      <li><strong>Posts to</strong>
+        <span><code><?= h(rtrim(bbl_config()['site_url'], '/')) ?>/hook.php</code> — and your instance
+          has to be able to reach that, which for a machine behind a router means a port forward or a
+          tunnel. Nothing here can arrange that for you.</span></li>
+      <li><strong>Signing secret</strong>
+        <span><code class="wrap"><?= h(setting_secret('webhook_secret')) ?></code></span></li>
+    </ol>
+    <p class="small muted">This step is the only screen that shows the secret, and only while webhooks
+       are switched on here — it is stored encrypted and read back for this. Copy it now rather than
+       coming looking for it; if it is ever lost, set a new one on both ends.</p>
+    <p class="small muted">Then use <strong>send a test envelope</strong> on that page. It sends a real
+       signed envelope naming a task that does not exist, so accepting it proves the address and the
+       signature without touching anybody's work.</p>
+  </div>
+<?php endif; ?>
 
 <?php elseif ($step === 'agent'): ?>
   <div class="card">
@@ -451,9 +500,9 @@ view_masthead();
         <input type="text" name="default_model" value="<?= h(setting('default_model')) ?>">
         <small>Used when neither the project nor the role on the instance names one.</small>
       </label>
-      <div class="actions">
-        <button type="submit">Check it and finish</button>
+      <div class="actions nav">
 <?php setup_back_link("agent"); ?>
+        <button type="submit">Check it and finish</button>
       </div>
     </form>
   </div>
@@ -480,6 +529,12 @@ view_masthead();
 <?php // Somebody who has just chosen to be pushed to reasonably reads "runs every minute" as
       // polling, and wonders why they need it. They do, and this is the one place to say why. ?>
 <?php if (setting_bool('accept_webhooks')): ?>
+      <li><strong>Make the dispatcher at <?= h(company_name()) ?> point here</strong>
+        <span>Kind <code>webhook</code>, posting to
+          <code><?= h(rtrim(bbl_config()['site_url'], '/')) ?>/hook.php</code>, carrying the same
+          signing secret this machine holds — it is shown on the
+          <a href="setup.php?step=work">how work arrives</a> step. Until that exists, nothing is
+          pushed here and a refused envelope says nothing, by design.</span></li>
       <li><strong>Put the runner on a schedule — yes, even though work is pushed here</strong>
         <span>An envelope arriving only writes the task down. Accepting is all the receiver does,
           deliberately: your instance waits seconds for that, and an agent takes minutes, so a run
@@ -496,11 +551,11 @@ view_masthead();
           since the agent needs your PATH and your checkouts.</span></li>
 <?php endif; ?>
     </ol>
-    <div class="actions">
+    <div class="actions nav">
+<?php setup_back_link('done'); ?>
       <a class="secondary" href="diagnostics.php">Check everything</a>
       <a class="secondary" href="index.php">Dashboard</a>
       <a class="secondary" href="settings.php">All settings</a>
-<?php setup_back_link('done'); ?>
     </div>
   </div>
 <?php endif; ?>
