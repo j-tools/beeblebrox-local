@@ -34,10 +34,23 @@ jobs:
       # nothing gitignored can be swept in, and it applies the export-subst in .gitattributes that
       # stamps the commit into VERSION. The prefix is why this is built here rather than linking to
       # GitHub's own archive, which unpacks to a directory named after a 40-character hash.
+      # The build number is how many commits main has. A number people can say out loud and
+      # compare — "you are on 26, the newest is 28" — where a commit hash tells them only that
+      # the two differ. Derived rather than stored, so there is nothing to bump and nothing that
+      # can disagree with the history.
+      #
+      # git archive cannot add a file it did not commit, so the archive is unpacked, BUILD is
+      # written beside VERSION, and the tree is zipped again. VERSION still carries the commit,
+      # which is what you need when a number is not precise enough.
       - name: Pack
         run: |
-          git archive --format=zip --prefix=beeblebrox-local/ -o beeblebrox-local.zip HEAD
+          BUILD=$(git rev-list --count HEAD)
+          echo "BUILD=$BUILD" >> $GITHUB_ENV
+          git archive --format=tar --prefix=beeblebrox-local/ HEAD | tar -x
+          printf '%s\n' "$BUILD" > beeblebrox-local/BUILD
+          zip -qr beeblebrox-local.zip beeblebrox-local
           unzip -p beeblebrox-local.zip beeblebrox-local/VERSION
+          echo "build $BUILD"
 
       # Refused rather than published: a zip carrying a config file would be publishing whatever
       # happened to be in it. It cannot happen — config.local.php is gitignored and git archive only
@@ -68,9 +81,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           SHA=$(git rev-parse --short HEAD)
-          gh release create "build-$SHA" beeblebrox-local.zip \
-            --title "beeblebrox-local $SHA" \
+          gh release create "build-$BUILD" beeblebrox-local.zip \
+            --title "beeblebrox-local build $BUILD" \
             --notes "$(git log -1 --pretty=%s)
+
+          Build $BUILD, commit $SHA.
 
           Unpacks to \`beeblebrox-local/\`. The copy you unpack carries this commit in its \`VERSION\` file.
 

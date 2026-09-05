@@ -290,6 +290,12 @@ form.inline { display: inline; }
   word-break: break-word;
 }
 
+.drawer-version {
+  margin: .75rem .5rem .25rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--line);
+}
+
 .drawer-item {
   display: block;
   padding: .55rem .5rem;

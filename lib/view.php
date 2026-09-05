@@ -203,6 +203,21 @@ function view_header($title, $signed_in = false) {
   <a class="drawer-item<?= $item['href'] === $here ? ' current' : '' ?>" href="<?= h($item['href']) ?>">
     <?= h($item['label']) ?></a>
 <?php endforeach; ?>
+<?php /* Which copy this is, where somebody looking for it would look. A number rather than a
+         commit because a number can be compared out loud: "you are on 26, the newest is 28". A
+         checkout has no number — the release workflow writes it into the archive — and says so
+         instead of showing nothing. */ ?>
+<?php $build = bbl_build(); ?>
+  <p class="drawer-version muted small">
+<?php if ($build['number'] !== null): ?>
+    Build <?= (int)$build['number'] ?><?= $build['built'] !== null
+      ? ', ' . h($build['built']) : '' ?>
+<?php elseif ($build['commit'] !== null): ?>
+    Commit <?= h(substr($build['commit'], 0, 7)) ?>
+<?php else: ?>
+    From a checkout
+<?php endif; ?>
+  </p>
   <form method="post" action="logout.php" class="drawer-signout">
     <?= bbl_csrf_field() ?>
     <button type="submit" class="link">Sign out</button>

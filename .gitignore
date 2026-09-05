@@ -8,3 +8,8 @@ Thumbs.db
 # The database file and its WAL companions. The .htaccess that denies them must still ship.
 data/*
 !data/.htaccess
+
+# Written into the download by the release workflow, never committed: it is how many commits
+# main had when that archive was built. A BUILD file in a checkout would let the checkout claim
+# a number it did not earn — a checkout says "from a checkout" instead, which is the truth.
+BUILD
