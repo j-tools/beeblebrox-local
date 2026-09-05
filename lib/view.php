@@ -128,6 +128,35 @@ function view_menu_items() {
   return $items;
 }
 
+// The identity block, rendered once and used in the bar and in the drawer both.
+//
+// It was written twice, and two copies of a thing that has to match is how they stop matching: the
+// drawer had the wording without the mark, and different markup around it. One function instead, so
+// there is nothing to keep in step.
+//
+// The mark and the wording are one link, and it leads out of here rather than to the dashboard: the
+// instance is on another machine and is the thing somebody in this window wants to get back to.
+// Before there is an instance the public site is the only honest answer to what this is. Getting home
+// is the drawer's job, which is where it was anyway.
+function view_brand_block() {
+  $company = view_company();
+  ?>
+  <a class="brand-block" href="<?= h(view_home_url()) ?>" target="_blank" rel="noopener"
+     title="<?= h($company === '' ? 'What Beeblebrox is' : 'Open ' . $company) ?>">
+    <img class="brand-mark" src="assets/favicon-32.png" width="28" height="28" alt="Beeblebrox">
+    <span class="brand">
+<?php if ($company !== ''): ?>
+      <span class="brand-kicker">Local worker for</span>
+      <span class="brand-company"><?= h($company) ?> <span class="muted">Beeblebrox</span></span>
+<?php else: ?>
+      <span class="brand-kicker">Beeblebrox</span>
+      <span class="brand-company">Local worker</span>
+<?php endif; ?>
+    </span>
+  </a>
+<?php
+}
+
 function view_header($title, $signed_in = false) {
   $here = basename($_SERVER['SCRIPT_NAME'] ?? '');
   $counts = $signed_in ? job_counts() : [];
@@ -149,26 +178,7 @@ function view_header($title, $signed_in = false) {
 <?php if ($signed_in): ?>
   <label for="drawer-toggle" class="hamburger" title="Menu" aria-label="Menu"><span></span></label>
 <?php endif; ?>
-<?php
-  // The mark and the wording are one link, because they name one thing. It leads out of here rather
-  // than to the dashboard: the instance is on another machine and is the thing somebody in this
-  // window wants to get back to, and before there is an instance the public site is the only honest
-  // answer to what this is. Getting home is the drawer's job, which is where it was anyway.
-  $company = view_company();
-?>
-  <a class="brand-block" href="<?= h(view_home_url()) ?>" target="_blank" rel="noopener"
-     title="<?= h($company === '' ? 'What Beeblebrox is' : 'Open ' . $company) ?>">
-    <img class="brand-mark" src="assets/favicon-32.png" width="28" height="28" alt="Beeblebrox">
-    <span class="brand">
-<?php if ($company !== ''): ?>
-      <span class="brand-kicker">Local worker for</span>
-      <span class="brand-company"><?= h($company) ?> <span class="muted">Beeblebrox</span></span>
-<?php else: ?>
-      <span class="brand-kicker">Beeblebrox</span>
-      <span class="brand-company">Local worker</span>
-<?php endif; ?>
-    </span>
-  </a>
+<?php view_brand_block(); ?>
 <?php if ($signed_in): ?>
   <span class="bar-counts">
     <a href="jobs.php?status=attention" class="count<?= $needs_attention ? ' count-live' : '' ?>">
@@ -180,34 +190,17 @@ function view_header($title, $signed_in = false) {
 
 <?php if ($signed_in): ?>
 <nav class="drawer" aria-label="Main">
-  <?php /* What this is and whose, rather than the hostname it is served under. The host told nobody
-           anything they did not know — somebody looking at this window typed the address — and on a
-           machine reached through a tunnel it names something that is not this one.
-
-           The company links to the instance, because that is where the work comes from and the thing
-           somebody in this window usually wants to get back to. The instance's own address rather
-           than a constructed <company>.beeblebrox.cloud: an instance can be self-hosted anywhere,
-           and a link built from a name would quietly point at a host that does not exist.
-
-           The instance host is not repeated as a badge here the way the proxy repeats its worker's:
-           there it is a second machine, here it is the same one this line already links to.
+  <?php /* The bar's block, not a second telling of it — the mark, the wording and the link, the same
+           in both places. What this is and whose, rather than the hostname it is served under: the
+           host told nobody anything they did not know, since somebody looking at this window typed
+           the address, and on a machine reached through a tunnel it names something that is not this
+           one. The instance host is not repeated as a badge either, the way the proxy repeats its
+           worker's: there it is a second machine, here it is the same one the block already links to.
 
            bbl_env_label() is unchanged — it identifies this worker in what it reports upstream. */ ?>
-  <?php /* The bar's own words and the bar's own classes, so the drawer and the bar say the same thing
-           the same way. "Local worker for" is what this is; the company links to the instance, which is
-           where its work comes from. */ ?>
   <div class="drawer-who">
-<?php if (company_name() !== ''): ?>
-    <span class="brand-kicker">Local worker for</span>
-<?php if (instance_base() !== ''): ?>
-    <span class="brand-company"><a href="<?= h(instance_base()) ?>" target="_blank"
-      rel="noopener"><?= h(company_name()) ?></a></span>
-<?php else: ?>
-    <span class="brand-company"><?= h(company_name()) ?></span>
-<?php endif; ?>
-<?php else: ?>
-    <span class="brand-kicker">Beeblebrox</span>
-    <span class="brand-company">Local worker</span>
+    <?php view_brand_block(); ?>
+<?php if (instance_base() === ''): ?>
     <span class="muted small">no instance yet</span>
 <?php endif; ?>
   </div>
@@ -222,37 +215,37 @@ function view_header($title, $signed_in = false) {
          where the thumb expects them however many there are. */ ?>
   <div class="drawer-foot">
 <?php foreach ($feet as $item): ?>
-    <a class="drawer-item<?= $item['href'] === $here ? ' current' : '' ?>" href="<?= h($item['href']) ?>">
-      <?= h($item['label']) ?></a>
+      <a class="drawer-item<?= $item['href'] === $here ? ' current' : '' ?>" href="<?= h($item['href']) ?>">
+        <?= h($item['label']) ?></a>
 <?php endforeach; ?>
-  </div>
 <?php /* Which copy this is, where somebody looking for it would look. A number rather than a
          commit because a number can be compared out loud: "you are on 26, the newest is 28". A
          checkout has no number — the release workflow writes it into the archive — and says so
          instead of showing nothing. */ ?>
 <?php $build = bbl_build(); ?>
 <?php $newer = updates_available(); ?>
-  <p class="drawer-version muted small">
+    <p class="drawer-version muted small">
 <?php if ($build['number'] !== null): ?>
-    Build <?= (int)$build['number'] ?><?= $build['built'] !== null
-      ? ', ' . h($build['built']) : '' ?>
+      Build <?= (int)$build['number'] ?><?= $build['built'] !== null
+        ? ', ' . h($build['built']) : '' ?>
 <?php elseif ($build['commit'] !== null): ?>
-    Commit <?= h(substr($build['commit'], 0, 7)) ?>
+      Commit <?= h(substr($build['commit'], 0, 7)) ?>
 <?php else: ?>
-    From a checkout
+      From a checkout
 <?php endif; ?>
-  </p>
+    </p>
 <?php /* Shown only when there is something newer — a field that usually reads "up to date" gets
          looked at twice and never again, and this has to be noticed on the day it appears. */ ?>
 <?php if ($newer !== null): ?>
-  <p class="drawer-update">
-    <a href="<?= h($newer['url']) ?>" target="_blank" rel="noopener">Build <?= (int)$newer['latest'] ?> is out</a>
-  </p>
+    <p class="drawer-update">
+      <a href="<?= h($newer['url']) ?>" target="_blank" rel="noopener">Build <?= (int)$newer['latest'] ?> is out</a>
+    </p>
 <?php endif; ?>
-  <form method="post" action="logout.php" class="drawer-signout">
-    <?= bbl_csrf_field() ?>
-    <button type="submit" class="link">Sign out</button>
-  </form>
+    <form method="post" action="logout.php" class="drawer-signout">
+      <?= bbl_csrf_field() ?>
+      <button type="submit" class="link">Sign out</button>
+    </form>
+  </div>
 </nav>
 <label for="drawer-toggle" class="scrim" aria-hidden="true"></label>
 <?php endif; ?>
