@@ -25,6 +25,17 @@ function checks_run($deep = true) {
   $out = [];
   $cfg = bbl_config();
 
+  // Which build this is, so "am I on the newest one?" can be answered by comparing one line here
+  // with the releases page. A checkout says so instead of showing an unexpanded placeholder.
+  $build = bbl_build();
+  $out[] = $build['commit'] !== null
+    ? check('pass', 'Build ' . substr($build['commit'], 0, 7),
+        'Unpacked from a release' . ($build['built'] !== null ? ' built ' . $build['built'] : '') .
+        '. The newest is listed at https://github.com/j-tools/beeblebrox-local/releases — if it is newer than this one, upgrading is in INSTALL.md.',
+        'https://github.com/j-tools/beeblebrox-local/releases')
+    : check('pass', 'Running from a checkout',
+        'VERSION is only stamped when a release archive is built, so this copy came from git. `git log -1` is what says which commit it is, and `git pull` is the upgrade.');
+
   // --- the things that have to exist before anything else can ------------------------------------
   $out[] = file_exists(__DIR__ . '/../config.local.php')
     ? check('pass', 'config.local.php is present')

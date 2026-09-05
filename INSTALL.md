@@ -325,10 +325,43 @@ and hand the work back rather than paying for the run twice.
 
 ## Upgrading
 
+Two ways in, matching the two ways this is installed.
+
+**If you cloned it**, that is the whole thing:
+
 ```bash
 git pull
 timeout 120 php tools/migrate.php
 ```
 
+**If you unpacked a zip**, there is no `git pull` to run. Download the current one from
+<https://github.com/j-tools/beeblebrox-local/releases/latest> and swap it in:
+
+```bash
+# beside the install, not on top of it
+unzip beeblebrox-local.zip -d /tmp/upgrade
+
+# the two things that are yours and are not in the archive
+cp /path/to/beeblebrox-local/config.local.php /tmp/upgrade/beeblebrox-local/
+cp /path/to/beeblebrox-local/data/*.sqlite    /tmp/upgrade/beeblebrox-local/data/
+
+# swap, keeping the old one until the new one has answered a page
+mv /path/to/beeblebrox-local /path/to/beeblebrox-local.old
+mv /tmp/upgrade/beeblebrox-local /path/to/beeblebrox-local
+timeout 120 php /path/to/beeblebrox-local/tools/migrate.php
+```
+
+Then open Diagnostics. The **Build** line names the commit this copy came from, so comparing it with
+the releases page is how you know the swap took.
+
+**Unpacking over the top works and is quicker, with one catch worth knowing.** Your configuration and
+your database survive it — `config.local.php` and `data/*.sqlite` are not in the archive, and the release
+workflow refuses to publish one that contains either. What an overwrite cannot do is *remove* a file
+that no longer exists in the new version, so a page or a library dropped from the release stays on
+disk and stays reachable. Swapping directories is the version that cannot leave anything behind.
+
+Either way the files are the deployment: there is no service to restart, and the next request runs
+the new code. Whoever the web server runs as still needs to be able to write to `data/`, so check that
+if the new copy was unpacked by a different account than the old one.
 Migrations are re-runnable, and applying one by hand and leaving `schema_migrations` empty is a normal
 thing to have happened — the runner survives it and tells you how to record it.

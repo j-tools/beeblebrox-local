@@ -209,6 +209,34 @@ function bbl_agent_install_url() {
   return bbl_public_site() . '/local/#claude-code';
 }
 
+// Which build this copy is, from the VERSION file the release archive stamps.
+//
+// Returns ['commit' => '936cbb6…', 'built' => '2026-09-04'] for a copy unpacked from a zip, or
+// ['commit' => null, 'built' => null] in a checkout — git archive's export-subst only fills those in
+// when it builds an archive, so a checkout legitimately has placeholders and `git log` is the answer
+// there instead.
+//
+// This exists because "am I on the newest one?" is unanswerable from a zip install otherwise: the
+// information ships in the archive and nothing was reading it.
+function bbl_build() {
+  $file = __DIR__ . '/VERSION';
+  if (!is_file($file)) {
+    return ['commit' => null, 'built' => null];
+  }
+  $text = (string)file_get_contents($file);
+  $commit = null;
+  $built = null;
+  // \s*$ rather than $: the archive carries CRLF when the repository normalises line endings,
+  // and a bare $ would not match past the carriage return. Which is to say this read NULL on
+  // every real release until it was tried against one.
+  if (preg_match('/^commit\s+([0-9a-f]{7,40})\s*$/mi', $text, $m)) {
+    $commit = $m[1];
+  }
+  if (preg_match('/^built\s+(\d{4}-\d{2}-\d{2})\s*$/mi', $text, $m)) {
+    $built = $m[1];
+  }
+  return ['commit' => $commit, 'built' => $built];
+}
 // A human label for which instance this checkout serves, used in the page title and in log lines so a
 // beta window and a production window are never mistaken for each other.
 function bbl_env_label() {
