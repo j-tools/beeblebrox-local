@@ -175,9 +175,29 @@ function view_header($title, $signed_in = false) {
 
 <?php if ($signed_in): ?>
 <nav class="drawer" aria-label="Main">
+  <?php /* What this is and whose, rather than the hostname it is served under. The host told nobody
+           anything they did not know — somebody looking at this window typed the address — and on a
+           machine reached through a tunnel it names something that is not this one.
+
+           The company links to the instance, because that is where the work comes from and the thing
+           somebody in this window usually wants to get back to. The instance's own address rather
+           than a constructed <company>.beeblebrox.cloud: an instance can be self-hosted anywhere,
+           and a link built from a name would quietly point at a host that does not exist.
+
+           The instance host is not repeated as a badge here the way the proxy repeats its worker's:
+           there it is a second machine, here it is the same one this line already links to.
+
+           bbl_env_label() is unchanged — it identifies this worker in what it reports upstream. */ ?>
   <div class="drawer-who">
-    <strong><?= h(bbl_env_label()) ?></strong>
-    <span class="badge"><?= h(parse_url((string)setting('instance_url'), PHP_URL_HOST) ?: 'no instance') ?></span>
+    <strong>Beeblebrox Local</strong>
+<?php if (company_name() !== '' && instance_base() !== ''): ?>
+    <span class="muted small">for <a href="<?= h(instance_base()) ?>" target="_blank"
+      rel="noopener"><?= h(company_name()) ?></a></span>
+<?php elseif (company_name() !== ''): ?>
+    <span class="muted small">for <?= h(company_name()) ?></span>
+<?php else: ?>
+    <span class="muted small">no instance yet</span>
+<?php endif; ?>
   </div>
 <?php foreach (view_menu_items() as $item): ?>
   <a class="drawer-item<?= $item['href'] === $here ? ' current' : '' ?>" href="<?= h($item['href']) ?>">
