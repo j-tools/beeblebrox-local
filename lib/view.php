@@ -188,14 +188,21 @@ function view_header($title, $signed_in = false) {
            there it is a second machine, here it is the same one this line already links to.
 
            bbl_env_label() is unchanged — it identifies this worker in what it reports upstream. */ ?>
+  <?php /* The bar's own words and the bar's own classes, so the drawer and the bar say the same thing
+           the same way. "Local worker for" is what this is; the company links to the instance, which is
+           where its work comes from. */ ?>
   <div class="drawer-who">
-    <strong>Beeblebrox Local</strong>
-<?php if (company_name() !== '' && instance_base() !== ''): ?>
-    <span class="muted small">for <a href="<?= h(instance_base()) ?>" target="_blank"
+<?php if (company_name() !== ''): ?>
+    <span class="brand-kicker">Local worker for</span>
+<?php if (instance_base() !== ''): ?>
+    <span class="brand-company"><a href="<?= h(instance_base()) ?>" target="_blank"
       rel="noopener"><?= h(company_name()) ?></a></span>
-<?php elseif (company_name() !== ''): ?>
-    <span class="muted small">for <?= h(company_name()) ?></span>
 <?php else: ?>
+    <span class="brand-company"><?= h(company_name()) ?></span>
+<?php endif; ?>
+<?php else: ?>
+    <span class="brand-kicker">Beeblebrox</span>
+    <span class="brand-company">Local worker</span>
     <span class="muted small">no instance yet</span>
 <?php endif; ?>
   </div>
