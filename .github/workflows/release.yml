@@ -28,7 +28,11 @@ jobs:
   package:
     runs-on: ubuntu-latest
     steps:
+      # The whole history, because the build number counts it. checkout clones shallow by
+      # default — one commit — so the first numbered release came out as "build 1".
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # git archive rather than zipping the working directory: it takes only what is committed, so
       # nothing gitignored can be swept in, and it applies the export-subst in .gitattributes that
