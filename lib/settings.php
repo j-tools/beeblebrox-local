@@ -78,6 +78,12 @@ function bbl_setting_defaults() {
     // arrived" apart from "nothing is looking", which are the same picture and different problems.
     'last_pass_at'          => '',
 
+    // The newest build published on GitHub, and when that was last asked. Written by the
+    // update check rather than by a person — they live here because this is where a value
+    // that has to outlive a request lives, not because there is anything to configure.
+    'latest_build'          => '',
+    'latest_checked_at'     => '',
+
     // Which setup questions have actually been answered. Two of the four have a working default, so
     // the settings behind them cannot say whether anybody has read them — and those two are the pair
     // most worth having read.

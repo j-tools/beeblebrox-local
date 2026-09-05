@@ -90,7 +90,7 @@ how work arrives, and what runs it. Each answer is checked against the instance 
 | `tools/run.php` | the runner. Nothing happens until this is on a schedule |
 | `tools/selftest.php` | the same checks from a terminal, as the account the schedule uses |
 | `tools/migrate.php` | applies `db/migrations/*.sql` once each |
-| `lib/` | the pieces: `runner`, `agent`, `upstream`, `security`, `jobs`, `settings` |
+| `lib/` | the pieces: `runner`, `agent`, `upstream`, `security`, `jobs`, `settings`, `updates` |
 | `tests/` | `smoke.php` needs nothing; `hook.php` needs a running server |
 
 ## Branches

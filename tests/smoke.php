@@ -9,6 +9,7 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/security.php';
 require_once __DIR__ . '/../lib/agent.php';
 require_once __DIR__ . '/../lib/settings.php';
+require_once __DIR__ . '/../lib/updates.php';
 
 $failures = 0;
 
@@ -158,5 +159,18 @@ is_same(false, url_is_upstream('https://zaphod.beeblebrox.cloud.evil.example/api
 is_same(false, url_is_upstream(''), 'an empty URL');
 setting_set('instance_url', $stored === null ? '' : $stored['value']);
 
+echo "\nupdates_parse — the half of the version check that can be wrong quietly\n";
+is_same(30, updates_parse('{"tag_name":"build-30","published_at":"2026-09-05T16:46:49Z"}'),
+  'the number out of a release tag');
+is_same(null, updates_parse('{"tag_name":"v1.4.0"}'),
+  'a tag in some other scheme is not guessed at');
+is_same(null, updates_parse('{"message":"Not Found"}'), 'a repository with no releases yet');
+is_same(null, updates_parse('<html>proxy says no</html>'), 'something that is not JSON at all');
+is_same(null, updates_parse(''), 'an empty body');
+
+echo "\nupdates_available — what the drawer asks\n";
+// A checkout has no build number, so there is nothing to compare and nothing to say. Which is also
+// what makes this safe to call here: it returns before it can reach the network or the settings.
+is_same(null, updates_available(), 'a checkout is told nothing, having no number to compare');
 echo "\n" . ($failures === 0 ? "All passed.\n" : "{$failures} failure(s).\n");
 exit($failures === 0 ? 0 : 1);

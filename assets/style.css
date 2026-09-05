@@ -290,6 +290,14 @@ form.inline { display: inline; }
   word-break: break-word;
 }
 
+/* The one thing in the drawer that is news rather than furniture, so it is the one thing there
+   with a color. */
+.drawer-update {
+  margin: 0 0 .35rem;
+  font-size: .82rem;
+}
+.drawer-update a { color: var(--accent); font-weight: 600; }
+
 .drawer-version {
   margin: .75rem .5rem .25rem;
   padding-top: .5rem;
