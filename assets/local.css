@@ -202,6 +202,16 @@ table.grid th { color: var(--muted); font-weight: 600; font-size: .78rem; text-t
   line-height: 1.2;
   min-width: 0;
 }
+/* The drawer is a flex column, so margin-top:auto pushes this group and everything after it to
+   the bottom: the things you open when something is wrong, away from the things you use. */
+.drawer-foot {
+  margin-top: auto;
+  padding-top: .75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
 .brand-kicker { font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
 .brand-company {
   font-weight: 600;

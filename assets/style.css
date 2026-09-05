@@ -308,7 +308,8 @@ form.inline { display: inline; }
 .drawer-item.current { background: var(--bg); font-weight: 600; }
 
 .drawer-signout {
-  margin-top: auto;
+  /* No margin-top:auto here: .drawer-foot pins the bottom group, and two auto
+     margins in one flex column share the free space instead of one taking it. */
   padding: .75rem .5rem 0;
   border-top: 1px solid var(--line);
 }

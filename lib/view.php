@@ -111,8 +111,12 @@ function view_menu_items() {
     ['href' => 'index.php',    'label' => 'Dashboard'],
     ['href' => 'jobs.php',     'label' => 'Jobs'],
     ['href' => 'projects.php', 'label' => 'Projects'],
-    ['href' => 'settings.php', 'label' => 'Settings'],
-    ['href' => 'diagnostics.php', 'label' => 'Diagnostics'],
+    // Settings and Diagnostics are not what this is for. They are what you open when something
+    // is wrong or not set up yet, which is a different kind of visit from looking at the work —
+    // so they sit at the foot of the drawer with the build number, out of the way of the things
+    // used every day.
+    ['href' => 'settings.php', 'label' => 'Settings', 'foot' => true],
+    ['href' => 'diagnostics.php', 'label' => 'Diagnostics', 'foot' => true],
   ];
   // Offered only while there is something it would still ask. Once everything is answered the
   // settings page is the place to change any of it, and a permanent "Setup" entry would suggest
@@ -206,10 +210,21 @@ function view_header($title, $signed_in = false) {
     <span class="muted small">no instance yet</span>
 <?php endif; ?>
   </div>
-<?php foreach (view_menu_items() as $item): ?>
+<?php $menu = view_menu_items();
+  $feet = array_values(array_filter($menu, function ($i) { return !empty($i['foot']); }));
+  $main = array_values(array_filter($menu, function ($i) { return empty($i['foot']); })); ?>
+<?php foreach ($main as $item): ?>
   <a class="drawer-item<?= $item['href'] === $here ? ' current' : '' ?>" href="<?= h($item['href']) ?>">
     <?= h($item['label']) ?></a>
 <?php endforeach; ?>
+<?php /* Pinned to the bottom by margin-top:auto on the group, so the everyday items stay
+         where the thumb expects them however many there are. */ ?>
+  <div class="drawer-foot">
+<?php foreach ($feet as $item): ?>
+    <a class="drawer-item<?= $item['href'] === $here ? ' current' : '' ?>" href="<?= h($item['href']) ?>">
+      <?= h($item['label']) ?></a>
+<?php endforeach; ?>
+  </div>
 <?php /* Which copy this is, where somebody looking for it would look. A number rather than a
          commit because a number can be compared out loud: "you are on 26, the newest is 28". A
          checkout has no number — the release workflow writes it into the archive — and says so
