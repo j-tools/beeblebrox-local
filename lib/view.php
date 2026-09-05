@@ -156,7 +156,7 @@ function view_header($title, $signed_in = false) {
     <img class="brand-mark" src="assets/favicon-32.png" width="28" height="28" alt="Beeblebrox">
     <span class="brand">
 <?php if ($company !== ''): ?>
-      <span class="brand-kicker">Local work for</span>
+      <span class="brand-kicker">Local worker for</span>
       <span class="brand-company"><?= h($company) ?> <span class="muted">Beeblebrox</span></span>
 <?php else: ?>
       <span class="brand-kicker">Beeblebrox</span>
