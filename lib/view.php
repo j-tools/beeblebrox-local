@@ -120,10 +120,14 @@ function view_asset_version() {
   return $token;
 }
 function view_head($title) {
+  // The dashboard passes no page name. It is this application's own front page, so its name on
+  // its own is the whole of what a tab should say — "Dashboard" in front of it named the part
+  // somebody is least likely to be looking for in a row of tabs.
+  $name = 'Beeblebrox Local';
   ?>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($title) ?> — Beeblebrox Local</title>
+  <title><?= h($title === '' ? $name : $title . ' — ' . $name) ?></title>
   <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="assets/favicon-180.png">
   <link rel="stylesheet" href="assets/style.css?v=<?= h(view_asset_version()) ?>">

@@ -107,7 +107,9 @@ $counts = job_counts();
 $recent = jobs_recent(12);
 $attention = jobs_by_status('attention', 20);
 
-view_header('Dashboard', true);
+// No page name: this is the front page of the application, so the tab says what it is and
+// nothing else.
+view_header('', true);
 view_flash(null, $notice);
 ?>
 
