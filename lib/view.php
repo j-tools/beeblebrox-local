@@ -95,6 +95,30 @@ function view_masthead() {
 <?php
 }
 
+// A token that changes whenever a new build is unpacked, appended to the stylesheet URLs.
+//
+// An upgrade writes new HTML and new CSS to the same addresses, and a browser holding the previous
+// build's stylesheet will apply it to this build's markup — which comes out looking broken, with
+// nothing anywhere saying why. The build number in the URL means a new build is a new address, so
+// there is nothing to clear and nobody to tell about a hard refresh.
+//
+// A checkout has no build number and its CSS changes constantly, so there the stylesheet's own
+// modification time does the same job.
+function view_asset_version() {
+  static $token = null;
+  if ($token !== null) {
+    return $token;
+  }
+  $build = bbl_build();
+  if ($build['number'] !== null) {
+    $token = (string)$build['number'];
+  } elseif ($build['commit'] !== null) {
+    $token = substr($build['commit'], 0, 7);
+  } else {
+    $token = (string)filemtime(__DIR__ . '/../assets/style.css');
+  }
+  return $token;
+}
 function view_head($title) {
   ?>
   <meta charset="utf-8">
@@ -102,8 +126,8 @@ function view_head($title) {
   <title><?= h($title) ?> — Beeblebrox Local</title>
   <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="assets/favicon-180.png">
-  <link rel="stylesheet" href="assets/style.css">
-  <link rel="stylesheet" href="assets/local.css">
+  <link rel="stylesheet" href="assets/style.css?v=<?= h(view_asset_version()) ?>">
+  <link rel="stylesheet" href="assets/local.css?v=<?= h(view_asset_version()) ?>">
 <?php
 }
 
@@ -233,14 +257,24 @@ function view_header($title, $signed_in = false) {
 <?php else: ?>
       From a checkout
 <?php endif; ?>
-    </p>
-<?php /* Shown only when there is something newer — a field that usually reads "up to date" gets
-         looked at twice and never again, and this has to be noticed on the day it appears. */ ?>
+<?php /* Shown only when there is something newer. Nothing appears when there is not: a field that
+           usually reads "up to date" gets looked at twice and never again, and this has to be
+           noticed on the day it appears.
+
+           An icon rather than a sentence, next to the number it is about, because that is where
+           somebody wondering which build this is already is. What it says is in the tooltip and in
+           the label a screen reader reads, so the color is not carrying the meaning on its own. */ ?>
 <?php if ($newer !== null): ?>
-    <p class="drawer-update">
-      <a href="<?= h($newer['url']) ?>" target="_blank" rel="noopener">Build <?= (int)$newer['latest'] ?> is out</a>
-    </p>
+      <a class="update-flag" href="<?= h($newer['url']) ?>" target="_blank" rel="noopener"
+         title="Build <?= (int)$newer['latest'] ?> is out — how to update"
+         aria-label="Build <?= (int)$newer['latest'] ?> is out — how to update"
+        ><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="8" cy="4.5" r="1" fill="currentColor"/>
+          <path d="M8 7.1v4.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg></a>
 <?php endif; ?>
+    </p>
     <form method="post" action="logout.php" class="drawer-signout">
       <?= bbl_csrf_field() ?>
       <button type="submit" class="link">Sign out</button>
