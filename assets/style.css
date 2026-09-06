@@ -322,12 +322,16 @@ form.inline { display: inline; }
 }
 
 /* The one thing in the drawer that is news rather than furniture, so it is the one thing there
-   with a color. */
-.drawer-update {
-  margin: 0 0 .35rem;
-  font-size: .82rem;
+   with a color. Sits on the build number's own line, a character wide. */
+.update-flag {
+  color: var(--accent);
+  /* The line already ends in a space from the markup, so this only needs to add a hair. */
+  margin-left: .15rem;
+  /* The number beside it is .82rem, so the circle wants nudging down to sit on the same
+     baseline rather than floating above it. */
+  vertical-align: -2px;
 }
-.drawer-update a { color: var(--accent); font-weight: 600; }
+.update-flag svg { display: inline-block; }
 
 /* The bottom of the drawer, in all three windows: what you open when something is wrong or not
    set up yet, then which build this is, then Sign out. The drawer is a flex column, so
