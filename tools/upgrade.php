@@ -21,8 +21,20 @@ require_once __DIR__ . '/../lib/upgrade.php';
 $build = bbl_build();
 echo 'installed: ' . ($build['number'] === null ? 'a checkout' : 'build ' . $build['number']) . "\n";
 
+// Every refusal in here is a sentence meant for a person: a job in flight, a hash that did not match,
+// a directory that could not be written. Printed as one, rather than as a stack trace with the
+// sentence somewhere in the middle of it.
+function upgrade_tool_fail(Throwable $e) {
+  fwrite(STDERR, "\n" . $e->getMessage() . "\n");
+  exit(1);
+}
+
 if (in_array('--restore', $argv, true)) {
-  $back = upgrade_restore();
+  try {
+    $back = upgrade_restore();
+  } catch (Throwable $e) {
+    upgrade_tool_fail($e);
+  }
   echo "restored build {$back['build']} from {$back['files']} kept files.\n";
   exit(0);
 }
@@ -59,10 +71,13 @@ if (!in_array('--yes', $argv, true)) {
 }
 
 echo "\nfetching build {$newest} ... ";
-$staged = upgrade_stage($newest);
-echo "checked and unpacked\n";
-
-$result = upgrade_apply($staged, $newest);
+try {
+  $staged = upgrade_stage($newest);
+  echo "checked and unpacked\n";
+  $result = upgrade_apply($staged, $newest);
+} catch (Throwable $e) {
+  upgrade_tool_fail($e);
+}
 echo "installed:  {$result['files']} files, {$result['backed_up']} of them replacing a kept copy\n";
 echo "backup:     {$result['backup']}\n";
 if ($result['removed']) {
