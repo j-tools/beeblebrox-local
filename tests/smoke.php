@@ -10,6 +10,7 @@ require_once __DIR__ . '/../lib/security.php';
 require_once __DIR__ . '/../lib/agent.php';
 require_once __DIR__ . '/../lib/settings.php';
 require_once __DIR__ . '/../lib/updates.php';
+require_once __DIR__ . '/../lib/upgrade.php';
 
 $failures = 0;
 
@@ -172,5 +173,31 @@ echo "\nupdates_available — what the drawer asks\n";
 // A checkout has no build number, so there is nothing to compare and nothing to say. Which is also
 // what makes this safe to call here: it returns before it can reach the network or the settings.
 is_same(null, updates_available(), 'a checkout is told nothing, having no number to compare');
+echo "\nthe hash a release publishes for its download\n";
+$sums = "0f2a" . str_repeat('0', 60) . "  beeblebrox-local.zip\n" .
+        "9b7c" . str_repeat('1', 60) . "  beeblebrox-local.tar.gz\n";
+is_same('9b7c' . str_repeat('1', 60), upgrade_expected_hash($sums, 'beeblebrox-local.tar.gz'),
+  'the line for the file being checked, not the first one');
+is_same('', upgrade_expected_hash($sums, 'beeblebrox-local.tgz'),
+  'nothing for a name that is not in there, so a missing entry stops the upgrade');
+is_same('', upgrade_expected_hash("not a sums file at all\n", 'beeblebrox-local.tar.gz'),
+  'nothing for a file that is not a sums file');
+// sha256sum writes two spaces, and a star for binary mode. Both are read.
+is_same(str_repeat('a', 64),
+  upgrade_expected_hash(str_repeat('a', 64) . " *beeblebrox-local.tar.gz\n", 'beeblebrox-local.tar.gz'),
+  'binary mode, which is what sha256sum -b writes');
+
+echo "\npaths as somebody thinks of them\n";
+is_same('lib/upgrade.php', upgrade_relative_path(upgrade_install_root() . '/lib/upgrade.php'),
+  'inside the install, relative to it');
+is_same('', upgrade_relative_path(upgrade_install_root()), 'the install itself is the empty path');
+
+echo "\nwhether this copy could upgrade itself\n";
+// A checkout must always refuse: it has no build number, and its own code is newer than any release.
+$blockers = upgrade_blockers();
+is_true(is_array($blockers) && $blockers !== [],
+  'a checkout gives a reason rather than an upgrade button');
+is_true(count(array_filter($blockers, function ($b) { return strpos($b, 'git pull') !== false; })) === 1,
+  'and the reason names git pull, which is the right answer for a checkout');
 echo "\n" . ($failures === 0 ? "All passed.\n" : "{$failures} failure(s).\n");
 exit($failures === 0 ? 0 : 1);

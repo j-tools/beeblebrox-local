@@ -53,6 +53,15 @@ jobs:
           git archive --format=tar --prefix=beeblebrox-local/ HEAD | tar -x
           printf '%s\n' "$BUILD" > beeblebrox-local/BUILD
           zip -qr beeblebrox-local.zip beeblebrox-local
+          # A tar.gz of the same tree, for the upgrade button to fetch. PHP reads one with
+          # PharData, which is in a default build, where ZipArchive needs the zip extension —
+          # missing often enough that a zip-only download would mean a button that cannot work
+          # on the machine it is offered on. People still get the zip.
+          tar -czf beeblebrox-local.tar.gz beeblebrox-local
+          # What an upgrade checks its download against. Both files come from this release over
+          # the same connection, so this proves a complete download rather than an honest one —
+          # and incomplete is the failure that actually happens.
+          sha256sum beeblebrox-local.zip beeblebrox-local.tar.gz > SHA256SUMS
           unzip -p beeblebrox-local.zip beeblebrox-local/VERSION
           echo "build $BUILD"
 
@@ -70,6 +79,10 @@ jobs:
             echo "A config or a database is in the archive; not publishing." >&2
             exit 1
           fi
+          if tar -tzf beeblebrox-local.tar.gz | grep -qE 'config\.local\.php|\.sqlite'; then
+            echo "A config or a database is in the tarball; not publishing." >&2
+            exit 1
+          fi
 
       # Refused the other way round: the archive must *contain* this. Without it an unzip on Apache
       # serves data/ and the store with it, and the person installing has no reason to look.
@@ -79,13 +92,24 @@ jobs:
             echo "data/.htaccess is missing from the archive; not publishing." >&2
             exit 1
           fi
+          if ! tar -tzf beeblebrox-local.tar.gz | grep -q 'data/\.htaccess'; then
+            echo "data/.htaccess is missing from the tarball; not publishing." >&2
+            exit 1
+          fi
+          # An upgrade fetches the tarball by name and checks its BUILD against the tag it asked
+          # for. A tarball whose BUILD went missing would fail on every install that tried,
+          # rather than here, once.
+          if [ "$(tar -xzOf beeblebrox-local.tar.gz beeblebrox-local/BUILD)" != "$BUILD" ]; then
+            echo "The tarball's BUILD is not $BUILD; not publishing." >&2
+            exit 1
+          fi
 
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           SHA=$(git rev-parse --short HEAD)
-          gh release create "build-$BUILD" beeblebrox-local.zip \
+          gh release create "build-$BUILD" beeblebrox-local.zip beeblebrox-local.tar.gz SHA256SUMS \
             --title "beeblebrox-local build $BUILD" \
             --notes "$(git log -1 --pretty=%s)
 

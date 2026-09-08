@@ -144,6 +144,7 @@ function view_menu_items() {
     // is wrong or not set up yet, which is a different kind of visit from looking at the work —
     // so they sit at the foot of the drawer with the build number, out of the way of the things
     // used every day.
+    ['href' => 'upgrade.php', 'label' => 'Upgrade', 'foot' => true],
     ['href' => 'settings.php', 'label' => 'Settings', 'foot' => true],
     ['href' => 'diagnostics.php', 'label' => 'Diagnostics', 'foot' => true],
   ];
@@ -269,7 +270,7 @@ function view_header($title, $signed_in = false) {
            somebody wondering which build this is already is. What it says is in the tooltip and in
            the label a screen reader reads, so the color is not carrying the meaning on its own. */ ?>
 <?php if ($newer !== null): ?>
-      <a class="update-flag" href="<?= h($newer['url']) ?>" target="_blank" rel="noopener"
+      <a class="update-flag" href="upgrade.php"
          title="Build <?= (int)$newer['latest'] ?> is out — how to update"
          aria-label="Build <?= (int)$newer['latest'] ?> is out — how to update"
         ><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">

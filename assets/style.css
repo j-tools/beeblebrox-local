@@ -342,16 +342,21 @@ form.inline { display: inline; }
    instead of one taking it, which is how Sign out used to drift into the middle. */
 .drawer-foot {
   margin-top: auto;
-  padding-top: .75rem;
+  /* One rule above the whole group rather than one above each thing in it. Two hairlines a line
+     apart is what made this look assembled rather than designed. */
+  padding-top: .55rem;
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: .15rem;
+  gap: .1rem;
 }
 
+/* The build line and Sign out share the menu items' inset, so everything in the drawer starts on one
+   left edge — and the same quiet type, so the foot reads as one block about this copy rather than as
+   a label and a control. */
 .drawer-version {
-  margin: .75rem .5rem .25rem;
-  padding-top: .5rem;
-  border-top: 1px solid var(--line);
+  margin: .45rem 0 .1rem;
+  padding: 0 .5rem;
 }
 
 .drawer-item {
@@ -366,8 +371,7 @@ form.inline { display: inline; }
 .drawer-item.current { background: var(--bg); font-weight: 600; }
 
 .drawer-signout {
-  padding: .75rem .5rem 0;
-  border-top: 1px solid var(--line);
+  padding: .1rem .5rem 0;
 }
 
 /* A form that is really just one button sitting inside a sentence — "remove", "archive this suite".

@@ -325,7 +325,19 @@ and hand the work back rather than paying for the run twice.
 
 ## Upgrading
 
-Two ways in, matching the two ways this is installed.
+**Open the Upgrade page.** It names the build this copy is, the newest one published, and — if this
+copy can replace its own files — offers a button that does the whole thing: fetch the release, check
+it against the hash published beside it, keep a copy of every file it replaces, write the new ones,
+and apply any migrations. `tools/upgrade.php` does the same from a terminal, and
+`tools/upgrade.php --restore` puts the kept copy back.
+
+Whether the button appears is not a guess: the page writes a file into each directory it would have
+to write to, and deletes it again. If any of that fails it says which directory and stops offering.
+A copy whose files the web server may not write is a *good* way to run this — it means a bug in PHP
+cannot rewrite the application — and it is upgraded from a terminal instead, as whoever owns the
+files, either with `tools/upgrade.php` or by hand as below.
+
+The rest of this section is by hand, which is what the button is doing on your behalf.
 
 **If you cloned it**, that is the whole thing:
 

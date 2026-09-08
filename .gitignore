@@ -2,6 +2,9 @@ config.local.php
 jobs/
 logs/
 *.lock
+# Written and deleted again by the upgrade page to find out whether it can write here at all.
+# Only ever left behind by a machine that could create it and not remove it.
+.upgrade-probe
 .DS_Store
 Thumbs.db
 
