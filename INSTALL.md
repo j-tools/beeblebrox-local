@@ -276,11 +276,26 @@ Windows Task Scheduler, from an administrator prompt:
 
 ```
 schtasks /create /tn "beeblebrox-local" /sc minute /mo 1 /ru "%USERNAME%" ^
-  /tr "\"C:\xampp\php\php.exe\" \"C:\path\to\beeblebrox-local\tools\run.php\""
+  /tr "\"C:\xampp\php\php-win.exe\" \"C:\path\to\beeblebrox-local\tools\run.php\""
 ```
 
+**`php-win.exe`, not `php.exe`** — the same PHP, built so that Windows gives it no console. Called
+every minute by `php.exe`, a window appears and disappears on your desktop all day. Nothing is lost
+by having no console: every step of a pass is recorded in the database and shown on the Jobs page,
+each job's directory keeps its `prompt.md`, `stdout.txt` and `stderr.txt`, and the task's own **Last
+Run Result** still shows a non-zero code if the runner refused to start at all.
+
 Run it as **your own account**, not SYSTEM. The agent needs your credentials, your PATH and your
-checkouts, and a service account has none of those.
+checkouts, and a service account has none of those. "Run whether user is logged on or not" also
+hides the window, but it runs the task without your interactive session, so prefer the binary.
+
+If a task already exists and pops up a window, point it at the other binary rather than making a
+second one:
+
+```
+schtasks /change /tn "beeblebrox-local" ^
+  /tr "\"C:\xampp\php\php-win.exe\" \"C:\path\to\beeblebrox-local\tools\run.php\""
+```
 
 To watch it work instead, from a terminal you leave open:
 
