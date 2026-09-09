@@ -21,6 +21,29 @@ function check($state, $what, $detail = '', $url = null) {
 
 // $deep runs the checks that cost a network round trip or start a process. The dashboard skips them;
 // the diagnostics page and the CLI do not.
+// Whether anything is looking at the queue.
+//
+// Its own function because three places ask it: the diagnostics page, tools/selftest.php, and the
+// dashboard — where somebody wondering why a job is still queued actually is. One rule, so the three
+// cannot disagree about how long is too long.
+//
+// Five minutes, against a schedule INSTALL.md says to fire every minute: five missed passes is no
+// longer a machine that is merely between runs. A deliberately slower schedule will show this
+// between its runs, which is the honest answer to "is anything looking right now" — no.
+function check_runner_pass() {
+  $last = setting('last_pass_at');
+  if ($last === '' || $last === null) {
+    return check('warn', 'The runner has never run',
+      'Nothing runs on its own until tools/run.php is on a schedule — did you schedule it? Step 9 ' .
+      'of INSTALL.md has the command. Work that arrives will queue and stay queued until then.');
+  }
+  if (time() - strtotime($last) <= 5 * 60) {
+    return check('pass', 'The runner is running', 'last pass ' . view_ago_safe($last));
+  }
+  return check('warn', 'The runner has not run recently',
+    'The last pass was ' . view_ago_safe($last) . '. Nothing new is being picked up while that is ' .
+    'true, so the scheduled task has probably stopped.');
+}
 function checks_run($deep = true) {
   $out = [];
   $cfg = bbl_config();
@@ -180,17 +203,7 @@ function checks_run($deep = true) {
   }
 
   // --- the runner --------------------------------------------------------------------------------
-  $last = setting('last_pass_at');
-  if ($last === '' || $last === null) {
-    $out[] = check('warn', 'The runner has never run',
-      'Nothing happens on its own until tools/run.php is on a schedule. See INSTALL.md.');
-  } else {
-    $minutes = intdiv(max(0, time() - strtotime($last)), 60);
-    $out[] = $minutes <= 10
-      ? check('pass', 'The runner is running', 'last pass ' . view_ago_safe($last))
-      : check('warn', 'The runner has not run recently',
-          'Last pass was ' . view_ago_safe($last) . '. Check the scheduled task.');
-  }
+  $out[] = check_runner_pass();
 
   // --- where the work happens --------------------------------------------------------------------
   $job_root = $cfg['job_root'];

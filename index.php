@@ -13,6 +13,7 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/session.php';
 require_once __DIR__ . '/lib/jobs.php';
+require_once __DIR__ . '/lib/checks.php';
 require_once __DIR__ . '/lib/view.php';
 
 // The database is the first thing that can be wrong, and a stack trace is a poor way to say so on the
@@ -103,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
 }
 
 $gaps = settings_gaps();
+$runner = check_runner_pass();
 $counts = job_counts();
 $recent = jobs_recent(12);
 $attention = jobs_by_status('attention', 20);
@@ -125,6 +127,23 @@ view_flash(null, $notice);
       <a href="setup.php" class="primary">Finish setup</a>
       <a href="settings.php" class="secondary">All settings</a>
       <a href="diagnostics.php" class="secondary">Diagnostics</a>
+    </div>
+  </div>
+<?php endif; ?>
+
+<?php /* The one thing this page was not saying. "Last pass: never" was on it, in a row of
+         numbers, which is a fact and not an answer — and the question being asked in front of a
+         queued job is why nothing is happening to it. */ ?>
+<?php if ($runner['state'] !== 'pass'): ?>
+  <h2>Nothing is looking at the queue</h2>
+  <div class="card">
+    <p class="small"><strong><?= h($runner['what']) ?>.</strong> <?= h($runner['detail']) ?></p>
+<?php if ((int)$counts['queued'] > 0): ?>
+    <p class="small"><?= (int)$counts['queued'] ?> job<?= (int)$counts['queued'] === 1 ? '' : 's' ?>
+       already waiting, and will keep waiting until a pass runs.</p>
+<?php endif; ?>
+    <div class="actions">
+      <a href="diagnostics.php" class="primary">Diagnostics</a>
     </div>
   </div>
 <?php endif; ?>

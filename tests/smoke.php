@@ -11,6 +11,7 @@ require_once __DIR__ . '/../lib/agent.php';
 require_once __DIR__ . '/../lib/settings.php';
 require_once __DIR__ . '/../lib/updates.php';
 require_once __DIR__ . '/../lib/upgrade.php';
+require_once __DIR__ . '/../lib/checks.php';
 
 $failures = 0;
 
@@ -233,5 +234,29 @@ unset($_SERVER['HTTP_HOST']);
 is_same(rtrim((string)bbl_config()['site_url'], '/'), bbl_own_base_url(),
   'and a run with no request behind it falls back the same way');
 $_SERVER = $kept_server;
+echo "\nwhether anything is looking at the queue\n";
+// Set on the live row and put back, the way url_is_upstream is tested above: the function reads a
+// setting, and a test that mocked its way past that would not be testing what runs.
+$kept_pass = db_one('SELECT value FROM settings WHERE name = ?', ['last_pass_at']);
+
+setting_set('last_pass_at', '');
+$never = check_runner_pass();
+is_same('warn', $never['state'], 'a worker that has never run says so');
+is_true(strpos($never['detail'], 'did you schedule it') !== false,
+  'and asks the question whose answer is almost always no');
+
+setting_set('last_pass_at', date('Y-m-d H:i:s', time() - 60));
+is_same('pass', check_runner_pass()['state'], 'a pass a minute ago is a runner that is running');
+
+setting_set('last_pass_at', date('Y-m-d H:i:s', time() - 4 * 60));
+is_same('pass', check_runner_pass()['state'], 'and so is four minutes, being inside the window');
+
+setting_set('last_pass_at', date('Y-m-d H:i:s', time() - 6 * 60));
+$stale = check_runner_pass();
+is_same('warn', $stale['state'], 'six minutes is six missed passes, which is not between runs');
+is_true(strpos($stale['detail'], 'scheduled task') !== false,
+  'and it names the thing that has probably stopped');
+
+setting_set('last_pass_at', $kept_pass === null ? '' : $kept_pass['value']);
 echo "\n" . ($failures === 0 ? "All passed.\n" : "{$failures} failure(s).\n");
 exit($failures === 0 ? 0 : 1);
