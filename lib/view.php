@@ -226,7 +226,8 @@ function view_header($title, $signed_in = false) {
            one. The instance host is not repeated as a badge either, the way the proxy repeats its
            worker's: there it is a second machine, here it is the same one the block already links to.
 
-           bbl_env_label() is unchanged — it identifies this worker in what it reports upstream. */ ?>
+           What this worker calls itself upstream is its own address, not this line: see
+           bbl_own_base_url(), which is what every answer it sends back names it by. */ ?>
   <div class="drawer-who">
     <?php view_brand_block(); ?>
 <?php if (instance_base() === ''): ?>

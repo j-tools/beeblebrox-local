@@ -90,7 +90,8 @@ if ($instance !== instance_base()) {
 // Answered properly and recorded, but nothing is queued.
 if (($envelope['event'] ?? '') === 'test' || (int)($envelope['task']['id'] ?? 0) === 0) {
   receipt(true, 'connection test', null, $body);
-  echo json_encode(['ok' => true, 'receiver' => bbl_env_label(), 'note' => 'Test envelope accepted.']);
+  echo json_encode(['ok' => true, 'receiver' => bbl_own_base_url(),
+                    'note' => 'Test envelope accepted.']);
   exit;
 }
 
@@ -141,7 +142,7 @@ echo json_encode([
   'job_id'   => $job_id,
   'task_id'  => $task_id,
   'queued'   => $how === 'created',
-  'receiver' => bbl_env_label(),
+  'receiver' => bbl_own_base_url(),
   // Said plainly because the answer to "why has nothing happened" is almost always that the runner is
   // not on a schedule yet.
   'note'     => $how === 'existing'

@@ -199,5 +199,39 @@ is_true(is_array($blockers) && $blockers !== [],
   'a checkout gives a reason rather than an upgrade button');
 is_true(count(array_filter($blockers, function ($b) { return strpos($b, 'git pull') !== false; })) === 1,
   'and the reason names git pull, which is the right answer for a checkout');
+echo "\nthe address this install answers on, which is what it calls itself to another machine\n";
+// $_SERVER is what a request leaves behind, so the cases are made by writing it and put back after.
+$kept_server = $_SERVER;
+$_SERVER['HTTP_HOST'] = 'hier.novacentric.nl';
+$_SERVER['SCRIPT_NAME'] = '/beeblebrox-local/hook.php';
+unset($_SERVER['HTTPS'], $_SERVER['SERVER_PORT']);
+is_same('http://hier.novacentric.nl/beeblebrox-local', bbl_own_base_url(),
+  'the directory it is installed in, not just the host it is on');
+
+$_SERVER['SCRIPT_NAME'] = '/hook.php';
+is_same('http://hier.novacentric.nl', bbl_own_base_url(),
+  'an install at the root of a host has no path to add');
+
+$_SERVER['HTTPS'] = 'on';
+$_SERVER['SCRIPT_NAME'] = '/beeblebrox-local/hook.php';
+$_SERVER['HTTP_HOST'] = 'home.novacentric.nl:8443';
+is_same('https://home.novacentric.nl:8443/beeblebrox-local', bbl_own_base_url(),
+  'https and a port, which is what a box facing the internet looks like');
+
+$_SERVER['HTTPS'] = 'off';
+$_SERVER['SERVER_PORT'] = '443';
+is_same('https://home.novacentric.nl:8443/beeblebrox-local', bbl_own_base_url(),
+  'or the port alone saying so');
+
+// A Host header is whatever the caller sent, and this value goes into a header and into the
+// instance's log. Anything that is not a host is not used at all.
+$_SERVER['HTTP_HOST'] = "evil.example\r\nX-Injected: yes";
+is_same(rtrim((string)bbl_config()['site_url'], '/'), bbl_own_base_url(),
+  'a Host header with a newline in it is refused, and the configured address used instead');
+
+unset($_SERVER['HTTP_HOST']);
+is_same(rtrim((string)bbl_config()['site_url'], '/'), bbl_own_base_url(),
+  'and a run with no request behind it falls back the same way');
+$_SERVER = $kept_server;
 echo "\n" . ($failures === 0 ? "All passed.\n" : "{$failures} failure(s).\n");
 exit($failures === 0 ? 0 : 1);

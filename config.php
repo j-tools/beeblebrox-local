@@ -245,8 +245,32 @@ function bbl_build() {
   }
   return ['number' => $number, 'commit' => $commit, 'built' => $built];
 }
-// A human label for which instance this checkout serves, used in the page title and in log lines so a
-// beta window and a production window are never mistaken for each other.
+
+// The address this install answers on, as whoever just called it sees it: scheme, host, and the
+// directory this script sits in.
+//
+// The host on its own is not an answer to "where did my envelope go". Several applications can live
+// under one host — on a machine with XAMPP on it, several usually do — so a reply naming only the
+// host tells the sender the machine and not which install on it, which is the half they already knew.
+//
+// Read from the request rather than from site_url: a reply that says where the envelope actually
+// arrived is worth more than one repeating what somebody configured, and it is right before anybody
+// has configured anything. site_url is the fallback for a run with no request behind it, and for a
+// Host header that is not a host — that value reaches a response header and the instance's log, so
+// anything but a hostname and an optional port is not used at all.
+function bbl_own_base_url() {
+  $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+  if (preg_match('/^[a-z0-9.-]+(:\d+)?$/i', $host) !== 1) {
+    return rtrim((string)bbl_config()['site_url'], '/');
+  }
+  $https = ($_SERVER['HTTPS'] ?? '') !== '' && strcasecmp((string)$_SERVER['HTTPS'], 'off') !== 0;
+  $scheme = $https || (string)($_SERVER['SERVER_PORT'] ?? '') === '443' ? 'https' : 'http';
+  $directory = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
+  return $scheme . '://' . $host . $directory;
+}
+// A short name for which install this is, for the heading of the self-test — where telling a beta
+// window from a production one at a glance is the whole point, and an address would be more than is
+// wanted. What this install calls itself to another machine is bbl_own_base_url(), above.
 function bbl_env_label() {
   $host = parse_url(bbl_config()['site_url'], PHP_URL_HOST) ?: 'local';
   return $host;
