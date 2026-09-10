@@ -188,11 +188,22 @@ a credential to authenticate the request, which is the problem being solved.
 If you are running the instance and no admin account exists yet, that is a provisioning step on the
 instance itself — `tools/init-instance.php` there — not something this end can do.
 
-## 6. Map your projects
+## 6. Say where work happens
 
-The instance says a task belongs to project 7. Only this machine knows that project 7 is a checkout
-in `C:\work\invoicing`. Add each on the projects page, using the project id from the instance's
-project page URL.
+The instance says a task belongs to project 7. This machine has to turn that into a directory.
+
+**The short way:** set **where work happens** on the settings page — `C:\work`, say. The instance
+already knows each project's repository and the branch workers commit to, and it sends both with
+every task, so the first task for a project clones it into that directory and gets on with the work.
+The mapping appears on the projects page afterwards, where you can move it.
+
+Only `https://host/path` and `git@host:path` are accepted as repository addresses, and the clone runs
+as whoever the schedule runs as — so a private repository works exactly when that account's own git
+credentials work, and nothing about them is ever sent to the instance.
+
+**The long way**, for a checkout that has to live somewhere particular, or a project whose repository
+the instance does not name: add it on the projects page, using the project id from the instance's
+project page URL. A row you add yourself always wins over a clone.
 
 A **prepare command** runs in the workspace before every agent run, so each one starts from a known
 state rather than from whatever the last one left behind. It is split like a command line, not run
@@ -202,8 +213,9 @@ through a shell — no pipes, no `&&`. If it fails, the agent is not started.
 git fetch --all
 ```
 
-Nothing is guessed here on purpose. A project with no row stops and says so, because running an agent
-in the wrong directory is expensive to undo.
+What is never guessed is the *directory*. With no base directory set and no row of its own, a
+project stops and says so, because running an agent somewhere nobody chose is expensive to undo — and
+a clone into a directory you named is a different thing from a guess.
 
 ## 7. Choose how the agent runs
 

@@ -12,6 +12,7 @@ require_once __DIR__ . '/../lib/settings.php';
 require_once __DIR__ . '/../lib/updates.php';
 require_once __DIR__ . '/../lib/upgrade.php';
 require_once __DIR__ . '/../lib/checks.php';
+require_once __DIR__ . '/../lib/workspace.php';
 
 $failures = 0;
 
@@ -258,5 +259,42 @@ is_true(strpos($stale['detail'], 'scheduled task') !== false,
   'and it names the thing that has probably stopped');
 
 setting_set('last_pass_at', $kept_pass === null ? '' : $kept_pass['value']);
+echo "\nwhich repository addresses may be handed to git\n";
+// The instance is trusted to name a repository. That is a smaller claim than being trusted to run
+// anything as whoever owns this machine, and git blurs the two: ext:: runs a command, and an address
+// beginning with a dash is read as an option.
+is_true(workspace_repo_is_safe('https://github.com/j-tools/beeblebrox-local.git'),
+  'https, which is what GitHub offers to copy');
+is_true(workspace_repo_is_safe('git@github.com:j-tools/beeblebrox-local.git'),
+  'and the ssh form of the same thing');
+is_true(workspace_repo_is_safe('https://git.example.com:8443/team/thing'),
+  'a self-hosted host with a port');
+is_same(false, workspace_repo_is_safe('ext::sh -c whoami'),
+  'ext::, which is a command and not an address');
+is_same(false, workspace_repo_is_safe('--upload-pack=whoami'),
+  'anything that would be read as an option');
+is_same(false, workspace_repo_is_safe('file:///c/secrets'),
+  'a local path, which is not what a project is');
+is_same(false, workspace_repo_is_safe('git://github.com/j-tools/thing'),
+  'the unauthenticated git protocol');
+is_same(false, workspace_repo_is_safe('ssh://git@github.com/j-tools/thing'),
+  'ssh://, which is the same repository by an address this does not need');
+is_same(false, workspace_repo_is_safe("https://github.com/a/b\nfetch = x"),
+  'an address with a newline in it');
+is_same(false, workspace_repo_is_safe(' https://github.com/a/b'),
+  'and one with space around it, rather than trimming and hoping');
+is_same(false, workspace_repo_is_safe(''), 'nothing at all');
+
+echo "\nwhere a clone lands\n";
+is_same('beeblebrox-local',
+  workspace_directory_name('https://github.com/j-tools/beeblebrox-local.git', 7),
+  "the repository's own name, which is what a person expects to find on disk");
+is_same('beeblebrox-local',
+  workspace_directory_name('git@github.com:j-tools/beeblebrox-local', 7),
+  'the same from the ssh form');
+is_same('thing', workspace_directory_name('https://git.example.com/team/thing/', 7),
+  'a trailing slash is not a directory name');
+is_same('project-7', workspace_directory_name('https://github.com/', 7),
+  'and an address whose path says nothing falls back to the project id');
 echo "\n" . ($failures === 0 ? "All passed.\n" : "{$failures} failure(s).\n");
 exit($failures === 0 ? 0 : 1);

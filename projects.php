@@ -77,7 +77,9 @@ view_flash($error, $notice);
 ?>
 <h2>Mapped</h2>
 <?php if (!$projects): ?>
-  <p class="muted">None yet. Until a project is mapped, work that belongs to it stops and asks.</p>
+  <p class="muted">None yet. With a base directory set on the settings page, the first task for a
+     project clones its repository in there and appears here on its own — the instance already
+     knows which repository that is. Without one, work stops and asks.</p>
 <?php else: ?>
 <?php foreach ($projects as $project): ?>
   <div class="card">

@@ -14,6 +14,7 @@ require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/jobs.php';
 require_once __DIR__ . '/upstream.php';
 require_once __DIR__ . '/agent.php';
+require_once __DIR__ . '/workspace.php';
 
 // A failure that will probably not still be a failure in a minute. Anything else means asking again
 // is pointless: the token is wrong, the task is gone, the instance refused the shape of the request.
@@ -156,8 +157,20 @@ function runner_execute(array $job, array &$log) {
   $project = project_for_upstream($upstream_project_id);
 
   if ($upstream_project_id !== null) {
+    // Nothing mapped by hand, so try what the task already told us: the instance names the
+    // repository and the branch workers commit to, and a base directory is all this end needs to
+    // turn that into somewhere to work. A project somebody mapped themselves is untouched.
     if (!$project) {
-      job_attention($job_id, runner_unmapped_message($context));
+      $project = workspace_adopt($context, $why);
+      if ($project) {
+        job_log($job_id, 'Cloned ' . $context['project']['git_repo_url'] . ' into ' .
+          $project['workspace_path'] . ' — the instance named it, so nobody had to.');
+        $log[] = "job {$job_id}: cloned project {$upstream_project_id} into " .
+          $project['workspace_path'];
+      }
+    }
+    if (!$project) {
+      job_attention($job_id, runner_unmapped_message($context, $why));
       $log[] = "job {$job_id}: project {$upstream_project_id} is not mapped to a directory here";
       return false;
     }
@@ -301,7 +314,7 @@ function runner_job_dir($job_id, $task_id) {
 
 // Said in full because it is the message somebody reads at the moment they are least able to guess
 // what is meant: everything needed to make the mapping is in it.
-function runner_unmapped_message(array $context) {
+function runner_unmapped_message(array $context, $why = null) {
   $project = $context['project'];
   $lines = ["This task belongs to project {$project['id']}, \"{$project['name']}\", and this machine " .
             'has no directory mapped to it. Nothing was run.'];
@@ -309,7 +322,14 @@ function runner_unmapped_message(array $context) {
     $lines[] = 'Its repository is ' . $project['git_repo_url'] .
       (empty($project['work_branch']) ? '' : ' on branch ' . $project['work_branch']) . '.';
   }
-  $lines[] = 'Add it on the projects page, then retry this job.';
+  // Why the worker did not simply clone it, which it will do the moment it can: no base directory
+  // to work in, no repository named upstream, an address it will not hand to git, or a clone that
+  // failed. Without this the message reads as though mapping by hand were the only way.
+  if ($why !== null && $why !== '') {
+    $lines[] = $why;
+  }
+  $lines[] = 'Set a base directory on the settings page and this happens by itself, or map the ' .
+    'project by hand on the projects page. Either way, retry the job afterwards.';
   return implode("\n\n", $lines);
 }
 

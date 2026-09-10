@@ -215,10 +215,12 @@ view_flash($error, $notice);
     <small>Seconds. A run that passes this is stopped and the job goes to the needs-a-person list
       with whatever it had written by then.</small>
   </label>
-  <label>Suggested workspace root <span class="muted">optional</span>
+  <label>Where work happens <span class="muted">optional</span>
     <input type="text" name="workspace_root" value="<?= h(setting('workspace_root')) ?>"
            placeholder="C:/work">
-    <small>Only prefills the projects page. Nothing runs anywhere until a project is mapped.</small>
+    <small>Set this and a project maps itself: the instance names the repository and the branch
+      workers commit to, so the first task for a project clones it in here and carries on. Leave
+      it empty and every project has to be mapped by hand on the projects page first.</small>
   </label>
   <label>Jobs per pass
     <input type="text" name="max_jobs_per_run" inputmode="numeric"
